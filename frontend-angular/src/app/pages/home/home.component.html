@@ -1,0 +1,82 @@
+<div class="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
+  <!-- Hero -->
+  <section class="relative overflow-hidden pt-20 pb-32 px-4">
+    <div class="max-w-7xl mx-auto relative text-center">
+  <div class="mb-6 text-sm">Confiado por mais de 50.000 empresas em todo o mundo</div>
+  <h1 class="text-4xl font-bold mb-4">Encontre o <span class="block"><span class="gradient-text">freelancer</span> perfeito para o seu projeto</span></h1>
+  <p class="text-lg text-muted-foreground mb-6">Conecte-se com profissionais talentosos prontos para transformar sua visão em realidade.</p>
+
+      <form (submit)="onSearch($event)" class="max-w-2xl mx-auto mb-8">
+        <div class="flex gap-2 p-2 bg-card rounded-xl shadow border">
+          <div class="flex-1 relative">
+            <input [(ngModel)]="searchQuery" name="q" class="pl-12 h-14 text-base border-0 focus-visible:ring-0 bg-transparent" placeholder="Qual serviço você está procurando?" />
+          </div>
+          <button type="submit" class="h-14 px-8 bg-primary text-white rounded">Buscar</button>
+        </div>
+      </form>
+
+      <div class="flex flex-wrap gap-2 justify-center">
+        <span class="text-sm text-muted-foreground">Populares:</span>
+        <button *ngFor="let cat of ['Desenvolvimento Web','Design','Redação','Marketing']" class="rounded-full border px-3 py-1" (click)="router.navigateByUrl('/browse?category=' + cat)">{{ cat }}</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section class="py-12 border-y bg-muted/30">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="text-center" *ngFor="let s of [{label:'Freelancers Ativos', value:'50K+'},{label:'Projetos Concluídos', value:'100K+'},{label:'Satisfação dos Clientes', value:'98%'},{label:'Tempo Médio de Resposta', value:'2 hrs'}]">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary mb-3">★</div>
+          <div class="text-3xl font-bold mb-1">{{ s.value }}</div>
+          <div class="text-sm text-muted-foreground">{{ s.label }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section class="py-20 px-4">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold mb-4">Explore categorias populares</h2>
+        <p class="text-lg text-muted-foreground max-w-2xl mx-auto">Navegue por milhares de serviços em diferentes categorias</p>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div *ngFor="let c of categories" class="p-6 text-center border-2 rounded cursor-pointer hover:border-primary" (click)="router.navigateByUrl('/browse?category=' + c.name)">
+          <div class="text-4xl mb-4">{{ c.icon }}</div>
+          <h3 class="font-semibold mb-2">{{ c.name }}</h3>
+          <p class="text-sm text-muted-foreground">{{ c.count }} serviços</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Services -->
+  <section class="py-20 px-4 bg-muted/30">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex items-center justify-between mb-12">
+        <div>
+          <h2 class="text-3xl font-bold mb-4">Serviços em Destaque</h2>
+          <p class="text-lg text-muted-foreground">Serviços mais bem avaliados dos nossos melhores freelancers</p>
+        </div>
+        <button class="hidden sm:inline-flex border px-3 py-2" (click)="router.navigateByUrl('/browse')">Ver todos →</button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div *ngFor="let service of featuredServices" class="border-2 p-4 flex flex-col cursor-pointer">
+          <div class="mb-3"><span class="text-xs text-muted-foreground">{{ service.category }}</span></div>
+          <h3 class="text-lg font-semibold mb-2">{{ service.title }}</h3>
+          <p class="text-sm text-muted-foreground flex-1">{{ service.description || '' }}</p>
+          <div class="pt-4 border-t mt-auto flex items-center justify-between">
+            <div>
+              <p class="text-xs text-muted-foreground">A partir de</p>
+              <p class="text-xl font-bold">${{ service.price }}</p>
+            </div>
+            <button class="px-3 py-2 border rounded">Ver detalhes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

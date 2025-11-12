@@ -1,0 +1,144 @@
+<div class="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background flex items-center justify-center px-4">
+  <div class="w-full max-w-md">
+    <!-- Card de cadastro -->
+    <div class="bg-white border rounded-lg shadow-lg p-8">
+      <!-- Logo -->
+      <div class="flex justify-center mb-8">
+        <div class="w-12 h-12 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-2xl">F</div>
+      </div>
+
+      <!-- Título -->
+      <h1 class="text-2xl font-bold text-center mb-2">Cadastre-se</h1>
+      <p class="text-center text-muted-foreground mb-8">Crie uma conta para começar</p>
+
+      <!-- Formulário de registro -->
+      <form [formGroup]="registerForm" (ngSubmit)="onRegister()" class="space-y-4">
+        <!-- Email -->
+        <div>
+          <label for="email" class="block text-sm font-medium text-foreground mb-1">
+            E-mail
+          </label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="seu@email.com"
+            [class.border-red-500]="isFieldInvalid('email')"
+          />
+          <span *ngIf="isFieldInvalid('email')" class="text-red-500 text-xs mt-1 block">
+            {{ getFieldError('email') }}
+          </span>
+        </div>
+
+        <!-- Senha -->
+        <div>
+          <label for="password" class="block text-sm font-medium text-foreground mb-1">
+            Senha
+          </label>
+          <input
+            id="password"
+            [type]="showPassword ? 'text' : 'password'"
+            formControlName="password"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="••••••••"
+            [class.border-red-500]="isFieldInvalid('password')"
+          />
+          <span *ngIf="isFieldInvalid('password')" class="text-red-500 text-xs mt-1 block">
+            {{ getFieldError('password') }}
+          </span>
+        </div>
+
+        <!-- Confirmar Senha -->
+        <div>
+          <label for="confirmPassword" class="block text-sm font-medium text-foreground mb-1">
+            Confirmar Senha
+          </label>
+          <input
+            id="confirmPassword"
+            [type]="showPassword ? 'text' : 'password'"
+            formControlName="confirmPassword"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="••••••••"
+            [class.border-red-500]="isFieldInvalid('confirmPassword')"
+          />
+          <span *ngIf="isFieldInvalid('confirmPassword')" class="text-red-500 text-xs mt-1 block">
+            {{ getFieldError('confirmPassword') }}
+          </span>
+        </div>
+
+        <!-- Tipo de usuário (Role) -->
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-2">
+            Tipo de Conta
+          </label>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                formControlName="role"
+                value="user"
+                class="w-4 h-4"
+              />
+              <span class="text-sm">Usuário</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                formControlName="role"
+                value="admin"
+                class="w-4 h-4"
+              />
+              <span class="text-sm">Administrador</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Termos de uso -->
+        <label class="flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            formControlName="agreeTerms"
+            class="w-4 h-4 mt-1"
+          />
+          <span class="text-xs text-muted-foreground">
+            Concordo com os
+            <a href="#" class="text-primary hover:underline">Termos de Uso</a> e
+            <a href="#" class="text-primary hover:underline">Política de Privacidade</a>
+          </span>
+        </label>
+        <span *ngIf="isFieldInvalid('agreeTerms')" class="text-red-500 text-xs mt-1 block">
+          Você deve concordar com os termos para continuar.
+        </span>
+
+        <!-- Mensagem de erro geral -->
+        <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">
+          {{ error }}
+        </div>
+
+        <!-- Botão de cadastro -->
+        <button
+          type="submit"
+          [disabled]="registerForm.invalid || isLoading"
+          class="w-full bg-primary text-white font-medium py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <span *ngIf="!isLoading">Cadastrar</span>
+          <span *ngIf="isLoading">Cadastrando...</span>
+        </button>
+      </form>
+
+      <!-- Link de login -->
+      <p class="text-center text-sm text-muted-foreground mt-6">
+        Já tem uma conta?
+        <a routerLink="/login" class="text-primary hover:underline font-medium">
+          Entre aqui
+        </a>
+      </p>
+    </div>
+
+    <!-- Rodapé de segurança -->
+    <p class="text-center text-xs text-muted-foreground mt-6">
+      Seus dados estão seguros e criptografados.
+    </p>
+  </div>
+</div>

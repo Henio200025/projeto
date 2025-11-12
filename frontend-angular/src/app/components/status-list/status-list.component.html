@@ -1,0 +1,6 @@
+<div *ngIf="loading">Carregando...</div>
+<ul *ngIf="!loading">
+  <li *ngFor="let s of items">
+    <strong>{{ s.client_name }}</strong> — {{ s.timestamp | date:'short' }}
+  </li>
+</ul>
