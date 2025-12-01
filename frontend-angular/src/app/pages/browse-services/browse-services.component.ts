@@ -1,16 +1,36 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-browse-services',
   standalone: true,
-  imports: [CommonModule],
-  template: `
-    <div class="container mx-auto p-4">
-      <h1>Explorar Serviços</h1>
-      <!-- Adicione aqui o conteúdo da página de exploração de serviços -->
-    </div>
-  `,
-  styles: []
+  imports: [CommonModule, FormsModule],
+  templateUrl: './browse-services.component.html',
+  styleUrls: ['./browse-services.component.css']
 })
-export class BrowseServicesComponent {}
+export class BrowseServicesComponent implements OnInit {
+  searchQuery = '';
+  sidebarOpen = false;
+  showFilters = false;
+
+  ngOnInit() {
+    console.log('BrowseServicesComponent initialized');
+  }
+
+  toggleSidebar() {
+    this.sidebarOpen = !this.sidebarOpen;
+    console.log('Sidebar:', this.sidebarOpen);
+  }
+
+  toggleFilters() {
+    this.showFilters = !this.showFilters;
+    console.log('Filters:', this.showFilters);
+  }
+
+  onSearch(event: Event) {
+    event.preventDefault();
+    console.log('Pesquisando:', this.searchQuery);
+    // Implementar lógica de busca aqui
+  }
+}

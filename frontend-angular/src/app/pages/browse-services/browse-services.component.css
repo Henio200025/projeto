@@ -1,0 +1,16 @@
+/* Animação suave para sidebar */
+.transition-transform {
+  transition: transform 0.3s ease-in-out;
+}
+
+/* Garantir que o sidebar apareça/desapareça com transição */
+.hidden {
+  transform: translateX(-100%);
+}
+
+/* Posicionar filtro dropdown absolutamente */
+.absolute {
+  position: absolute;
+  top: 100%;
+  right: 0;
+}

@@ -3,8 +3,8 @@
     <div class="flex items-center justify-between h-16">
       <!-- Logo -->
       <a routerLink="/" class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">F</div>
-        <span class="text-xl font-bold hidden sm:inline">FreelanceHub</span>
+        <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold text-lg">M</div>
+        <span class="text-xl font-bold hidden sm:inline"><span class="text-purple-600">Uma</span><span class="text-black">Maozinha</span></span>
       </a>
 
       <!-- Desktop Navigation -->
@@ -31,11 +31,15 @@
 
           <!-- User avatar dropdown -->
           <div class="relative">
-            <button class="rounded-full flex items-center gap-2 px-2 py-1 hover:bg-muted rounded-lg transition-colors" aria-label="Menu do usuário">
-              <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">
-                {{ currentUser?.email?.charAt(0)?.toUpperCase() || 'U' }}
+            <button 
+              routerLink="/profile"
+              class="rounded-full flex items-center gap-2 px-2 py-1 hover:bg-muted rounded-lg transition-colors" 
+              aria-label="Perfil do usuário"
+            >
+              <div class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-bold">
+                {{ (currentUser?.nickname || currentUser?.email)?.charAt(0)?.toUpperCase() || 'U' }}
               </div>
-              <span class="hidden sm:inline text-sm font-medium">{{ currentUser?.email }}</span>
+              <span class="hidden sm:inline text-sm font-medium">{{ currentUser?.nickname || currentUser?.email }}</span>
             </button>
           </div>
 

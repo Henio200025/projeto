@@ -8,6 +8,8 @@ import { MessagesComponent } from './pages/messages/messages.component';
 import { CreateServiceComponent } from './pages/create-service/create-service.component';
 import { LoginComponent } from './pages/login/login.component';
 import { RegisterComponent } from './pages/register/register.component';
+import { HowItWorksComponent } from './pages/how-it-works/how-it-works.component';
+import { ProfileComponent } from './pages/profile/profile.component';
 import { authGuardV2 } from './services/auth.guard';
 
 export const routes: Routes = [
@@ -15,6 +17,8 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'browse', component: BrowseServicesComponent },
+  { path: 'how-it-works', component: HowItWorksComponent },
+  { path: 'profile', component: ProfileComponent, canActivate: [authGuardV2] },
   { path: 'service/:id', component: ServiceDetailComponent },
   { path: 'freelancer/:id', component: FreelancerProfileComponent },
   { 

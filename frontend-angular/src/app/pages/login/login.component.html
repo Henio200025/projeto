@@ -49,33 +49,6 @@
           </span>
         </div>
 
-        <!-- Tipo de usuário (Role) -->
-        <div>
-          <label class="block text-sm font-medium text-foreground mb-2">
-            Tipo de Conta
-          </label>
-          <div class="flex gap-4">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                formControlName="role"
-                value="user"
-                class="w-4 h-4"
-              />
-              <span class="text-sm">Usuário</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                formControlName="role"
-                value="admin"
-                class="w-4 h-4"
-              />
-              <span class="text-sm">Administrador</span>
-            </label>
-          </div>
-        </div>
-
         <!-- Mensagem de erro geral -->
         <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">
           {{ error }}
@@ -85,7 +58,7 @@
         <button
           type="submit"
           [disabled]="loginForm.invalid || isLoading"
-          class="w-full bg-primary text-white font-medium py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="w-full bg-purple-600 text-white font-medium py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <span *ngIf="!isLoading">Entrar</span>
           <span *ngIf="isLoading">Entrando...</span>

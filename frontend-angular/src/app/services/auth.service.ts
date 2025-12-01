@@ -23,6 +23,7 @@ export interface User {
   id: string;
   email: string;
   role: 'admin' | 'user';
+  nickname?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -114,6 +115,14 @@ export class AuthService {
    */
   hasRole(role: 'admin' | 'user'): boolean {
     return this.currentUserValue?.role === role;
+  }
+
+  /**
+   * Atualizar o usuário atual
+   */
+  updateCurrentUser(user: User): void {
+    this.setLocalStorage('currentUser', JSON.stringify(user));
+    this.currentUserSubject.next(user);
   }
 
   /**

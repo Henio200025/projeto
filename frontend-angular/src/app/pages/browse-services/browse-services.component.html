@@ -1,0 +1,86 @@
+<div class="min-h-screen bg-background flex">
+  <!-- Sidebar Toggle Button (Left) -->
+  <button 
+    (click)="toggleSidebar()"
+    class="fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-purple-600 text-white p-2 rounded-r-lg hover:bg-purple-700 transition-colors"
+    aria-label="Toggle sidebar"
+  >
+    <svg *ngIf="!sidebarOpen" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+    <svg *ngIf="sidebarOpen" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+  </button>
+
+  <!-- Sidebar (Categories) -->
+  <div 
+    [class.hidden]="!sidebarOpen"
+    class="fixed left-0 top-0 h-full w-64 bg-white border-r shadow-lg z-30 pt-20 overflow-y-auto transition-transform"
+  >
+    <div class="p-6">
+      <h2 class="text-xl font-bold mb-6 text-purple-600">Categorias</h2>
+      <div class="space-y-3">
+        <!-- As categorias serão adicionadas aqui posteriormente -->
+        <p class="text-sm text-muted-foreground">Categorias de serviços virão aqui...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="flex-1" [class.ml-64]="sidebarOpen">
+    <!-- Header with Search -->
+    <div class="bg-white border-b p-6">
+      <h1 class="text-3xl font-bold mb-6">Explorar Serviços</h1>
+      
+      <!-- Search Bar -->
+      <form (submit)="onSearch($event)" class="mb-4">
+        <div class="flex gap-2">
+          <div class="flex-1 relative">
+            <input 
+              [(ngModel)]="searchQuery" 
+              name="searchQuery"
+              type="text"
+              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+              placeholder="Pesquisar serviços..."
+            />
+          </div>
+          <button 
+            type="submit"
+            class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+          >
+            Buscar
+          </button>
+        </div>
+      </form>
+
+      <!-- Filter Button -->
+      <div class="flex items-center gap-2">
+        <button 
+          (click)="toggleFilters()"
+          class="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-muted transition-colors"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+          </svg>
+          Filtros
+        </button>
+        
+        <!-- Filter Options (Hidden by default) -->
+        <div *ngIf="showFilters" class="absolute top-auto mt-2 bg-white border rounded-lg shadow-lg p-4 min-w-max">
+          <p class="text-sm text-muted-foreground">Opções de filtro virão aqui...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Services Grid -->
+    <div class="p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Placeholder for services -->
+        <div class="p-4 border rounded-lg bg-muted/30">
+          <p class="text-muted-foreground">Serviços apareçam aqui...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

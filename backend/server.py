@@ -29,6 +29,23 @@ ACCESS_TOKEN_EXPIRE_HOURS = 24
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# Helper functions (definir antes de usar)
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(user_id: str, email: str, role: str) -> str:
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "role": role,
+        "exp": datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
+    }
+    encoded_jwt = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
 # In-memory storage for development (simulates MongoDB)
 in_memory_users: Dict[str, dict] = {}
 in_memory_status_checks: List[dict] = []
@@ -37,6 +54,42 @@ in_memory_status_checks: List[dict] = []
 use_mongodb = False
 db = None
 logger.info("✓ Using in-memory storage for user data")
+
+# Pre-populate test users immediately (before app starts)
+def _populate_test_users():
+    """Populate test users in memory immediately"""
+    test_users = [
+        {
+            "id": str(uuid.uuid4()),
+            "email": "user@example.com",
+            "password": hash_password("123456"),
+            "role": "user",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "email": "admin@example.com",
+            "password": hash_password("123456"),
+            "role": "admin",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "email": "freelancer@example.com",
+            "password": hash_password("123456"),
+            "role": "user",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+    ]
+    
+    for user in test_users:
+        in_memory_users[user["id"]] = user
+        logger.info(f"  ✓ Created test user: {user['email']} (role: {user['role']})")
+    
+    logger.info(f"✓ Total test users: {len(in_memory_users)}")
+
+# Call immediately
+_populate_test_users()
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -82,23 +135,6 @@ class User(BaseModel):
     password: str  # Hashed
     role: str
     created_at: datetime
-
-# Helper functions
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
-
-def create_access_token(user_id: str, email: str, role: str) -> str:
-    payload = {
-        "sub": user_id,
-        "email": email,
-        "role": role,
-        "exp": datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
-    }
-    encoded_jwt = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
@@ -275,39 +311,7 @@ async def startup_db_client():
             await db.users.create_index("email", unique=True)
             logger.info("✓ Database indexes created successfully")
         else:
-            # Pre-populate in-memory users for development
-            logger.info("✓ Pre-populating in-memory users for development...")
-            
-            # Create test users
-            test_users = [
-                {
-                    "id": str(uuid.uuid4()),
-                    "email": "user@example.com",
-                    "password": hash_password("123456"),
-                    "role": "user",
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                },
-                {
-                    "id": str(uuid.uuid4()),
-                    "email": "admin@example.com",
-                    "password": hash_password("123456"),
-                    "role": "admin",
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                },
-                {
-                    "id": str(uuid.uuid4()),
-                    "email": "freelancer@example.com",
-                    "password": hash_password("123456"),
-                    "role": "user",
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                }
-            ]
-            
-            for user in test_users:
-                in_memory_users[user["id"]] = user
-                logger.info(f"  - Created user: {user['email']} (role: {user['role']})")
-            
-            logger.info(f"✓ Total users created: {len(in_memory_users)}")
+            logger.info("✓ In-memory users already populated")
     except Exception as e:
         logger.error(f"Error during startup: {e}")
 
