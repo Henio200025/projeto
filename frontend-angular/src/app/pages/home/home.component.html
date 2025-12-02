@@ -11,7 +11,7 @@
           <div class="flex-1 relative">
             <input [(ngModel)]="searchQuery" name="q" class="pl-12 h-14 text-base border-0 focus-visible:ring-0 bg-transparent" placeholder="Qual serviço você está procurando?" />
           </div>
-          <button type="submit" class="h-14 px-8 bg-primary text-white rounded">Buscar</button>
+          <button type="submit" class="h-14 px-8 bg-primary text-white rounded btn-animated">Buscar</button>
         </div>
       </form>
 
@@ -43,11 +43,7 @@
         <p class="text-lg text-muted-foreground max-w-2xl mx-auto">Navegue por milhares de serviços em diferentes categorias</p>
       </div>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div *ngFor="let c of categories" class="p-6 text-center border-2 rounded cursor-pointer hover:border-primary" (click)="router.navigateByUrl('/browse?category=' + c.name)">
-          <div class="text-4xl mb-4">{{ c.icon }}</div>
-          <h3 class="font-semibold mb-2">{{ c.name }}</h3>
-          <p class="text-sm text-muted-foreground">{{ c.count }} serviços</p>
-        </div>
+        <app-category-card *ngFor="let c of categories" [category]="c" (select)="router.navigateByUrl('/browse?category=' + c.name)"></app-category-card>
       </div>
     </div>
   </section>
@@ -60,22 +56,11 @@
           <h2 class="text-3xl font-bold mb-4">Serviços em Destaque</h2>
           <p class="text-lg text-muted-foreground">Serviços mais bem avaliados dos nossos melhores freelancers</p>
         </div>
-        <button class="hidden sm:inline-flex border px-3 py-2" (click)="router.navigateByUrl('/browse')">Ver todos →</button>
+        <button class="hidden sm:inline-flex border px-3 py-2 btn-animated" (click)="router.navigateByUrl('/browse')">Ver todos →</button>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div *ngFor="let service of featuredServices" class="border-2 p-4 flex flex-col cursor-pointer">
-          <div class="mb-3"><span class="text-xs text-muted-foreground">{{ service.category }}</span></div>
-          <h3 class="text-lg font-semibold mb-2">{{ service.title }}</h3>
-          <p class="text-sm text-muted-foreground flex-1">{{ service.description || '' }}</p>
-          <div class="pt-4 border-t mt-auto flex items-center justify-between">
-            <div>
-              <p class="text-xs text-muted-foreground">A partir de</p>
-              <p class="text-xl font-bold">${{ service.price }}</p>
-            </div>
-            <button class="px-3 py-2 border rounded">Ver detalhes</button>
-          </div>
-        </div>
+        <app-service-card *ngFor="let service of featuredServices" [service]="service" (open)="router.navigateByUrl('/service/' + service.id)"></app-service-card>
       </div>
     </div>
   </section>

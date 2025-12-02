@@ -1,31 +1,36 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { MockApiService, ServiceItem, Category } from '../../services/mock-api.service';
+import { ServiceCardComponent } from '../../components/service-card/service-card.component';
+import { CategoryCardComponent } from '../../components/category-card/category-card.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ServiceCardComponent, CategoryCardComponent],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css']
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
   searchQuery = '';
+  categories: Category[] = [];
+  featuredServices: ServiceItem[] = [];
 
-  categories = [
-    { id: 1, name: 'Desenvolvimento Web', icon: '💻', count: 1250 },
-    { id: 2, name: 'Apps Móveis', icon: '📱', count: 850 },
-    { id: 3, name: 'Design & Criativo', icon: '🎨', count: 2100 },
-    { id: 4, name: 'Redação & Conteúdo', icon: '✍️', count: 1650 },
-  ];
+  constructor(public router: Router, private api: MockApiService, private cd: ChangeDetectorRef) {}
 
-  featuredServices = [
-    { id: 1, title: 'Desenvolvimento Profissional de Sites', description: 'Desenvolvimento full-stack com tecnologias modernas', price: 2500, deliveryTime: '7 dias', category: 'Desenvolvimento Web', freelancer: { name: 'Sarah Johnson', avatar: 'SJ', rating: 4.9, reviews: 127 } },
-    { id: 2, title: 'Design de UI/UX para Apps Móveis', description: 'Designs bonitos e intuitivos para apps móveis', price: 1800, deliveryTime: '5 dias', category: 'Design & Criativo', freelancer: { name: 'Michael Chen', avatar: 'MC', rating: 5.0, reviews: 89 } },
-  ];
-
-  constructor(public router: Router) {}
+  ngOnInit(): void {
+    // carregar categorias e serviços em destaque via mock api
+    this.api.getCategories().subscribe((c) => {
+      this.categories = c;
+      this.cd.markForCheck();
+    });
+    this.api.getFeaturedServices().subscribe((s) => {
+      this.featuredServices = s;
+      this.cd.markForCheck();
+    });
+  }
 
   onSearch(e: Event) {
     e.preventDefault();

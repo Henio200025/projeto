@@ -21,8 +21,8 @@
     <div class="p-6">
       <h2 class="text-xl font-bold mb-6 text-purple-600">Categorias</h2>
       <div class="space-y-3">
-        <!-- As categorias serão adicionadas aqui posteriormente -->
-        <p class="text-sm text-muted-foreground">Categorias de serviços virão aqui...</p>
+        <app-category-card [category]="{ id: 0, name: 'Todas', icon: '✨', count: categories.length }" [active]="!selectedCategory" (select)="clearCategory()"></app-category-card>
+        <app-category-card *ngFor="let c of categories" [category]="c" [active]="selectedCategory===c.name" (select)="selectCategory(c)"></app-category-card>
       </div>
     </div>
   </div>
@@ -75,11 +75,35 @@
 
     <!-- Services Grid -->
     <div class="p-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Placeholder for services -->
-        <div class="p-4 border rounded-lg bg-muted/30">
-          <p class="text-muted-foreground">Serviços apareçam aqui...</p>
+      <div class="flex items-center justify-between mb-4">
+        <div class="text-sm text-muted-foreground">Resultados: {{ total }}</div>
+        <div class="text-sm text-muted-foreground">Página {{ page }}</div>
+      </div>
+
+      <div *ngIf="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div *ngFor="let i of [1,2,3,4,5,6]" class="p-4 border rounded-lg bg-white animate-pulse">
+          <div class="h-32 bg-muted rounded mb-3"></div>
+          <div class="h-4 bg-muted rounded w-3/4 mb-2"></div>
+          <div class="h-3 bg-muted rounded w-1/2 mb-4"></div>
+          <div class="flex items-center justify-between">
+            <div class="h-6 w-24 bg-muted rounded"></div>
+            <div class="h-8 w-24 bg-muted rounded"></div>
+          </div>
         </div>
+      </div>
+
+      <div *ngIf="!loading && services.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <app-service-card *ngFor="let service of services" [service]="service" (open)="goToService($event)"></app-service-card>
+      </div>
+
+      <div *ngIf="!loading && services.length === 0" class="p-8 border rounded-lg bg-muted/30 text-center">
+        <p class="text-muted-foreground">Nenhum serviço encontrado com os critérios informados.</p>
+      </div>
+
+      <!-- Pagination -->
+      <div class="mt-6 flex items-center justify-center gap-3">
+        <button (click)="changePage(false)" [disabled]="page<=1" class="px-4 py-2 border rounded disabled:opacity-50 btn-animated">Anterior</button>
+        <button (click)="changePage(true)" [disabled]="page*perPage>=total" class="px-4 py-2 bg-primary text-white rounded disabled:opacity-50 btn-animated">Próxima</button>
       </div>
     </div>
   </div>

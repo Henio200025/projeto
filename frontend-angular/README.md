@@ -57,3 +57,20 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+## Project notes (Uma Mãozinha)
+
+- Implementação atual inclui mocks de API para acelerar o desenvolvimento front-end sem depender do backend. O serviço mock está em `src/app/services/mock-api.service.ts` e fornece endpoints simulados para `categories`, `services` e `service/:id`.
+- Componentes novos criados para reutilização: `ServiceCard` (src/app/components/service-card) e `CategoryCard` (src/app/components/category-card).
+- Para integrar com o backend real, substitua chamadas ao `MockApiService` por `HttpClient` para os endpoints reais e remova/limpe o serviço mock.
+
+- Endpoint mock adicional implementado: `POST /requests` (simulado via `MockApiService.postRequest`) para enviar pedidos de orçamento. Use `MockApiService.getRequestsByUser(userId)` para recuperar pedidos do usuário.
+
+### Run tests
+
+Rodar todos os testes unitários:
+
+```bash
+ng test
+```
+

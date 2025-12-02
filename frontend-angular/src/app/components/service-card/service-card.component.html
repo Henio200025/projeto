@@ -1,0 +1,19 @@
+<div class="p-4 border rounded-lg bg-white shadow-card hover:shadow-lg transition-shadow flex flex-col h-full">
+  <div class="mb-2 text-xs text-muted-foreground">{{ service.category }}</div>
+  <h3 class="text-lg font-semibold mb-2">{{ service.title }}</h3>
+  <p class="text-sm text-muted-foreground flex-1 mb-4">{{ service.description }}</p>
+
+  <div class="pt-4 border-t mt-auto flex items-center justify-between">
+    <div>
+      <p class="text-xs text-muted-foreground">A partir de</p>
+      <p class="text-xl font-bold">R$ {{ service.price }}</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="text-sm text-muted-foreground text-right">
+        <div class="font-medium">{{ service.freelancer?.name }}</div>
+        <div class="text-xs">⭐ {{ service.freelancer?.rating }} · {{ service.freelancer?.reviews }} avaliações</div>
+      </div>
+      <button type="button" (click)="onOpen()" class="px-3 py-2 bg-primary text-white rounded btn-animated service-card-button" aria-label="Ver detalhes do serviço">Ver detalhes</button>
+    </div>
+  </div>
+</div>

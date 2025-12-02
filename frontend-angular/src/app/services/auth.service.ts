@@ -1,7 +1,8 @@
 import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, of } from 'rxjs';
+import { delay } from 'rxjs/operators';
 import { map } from 'rxjs/operators';
 
 export interface LoginRequest {
@@ -29,6 +30,8 @@ export interface User {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly API_BASE = '/api';
+  // Toggle local mock auth for development/demo. Set to `false` to use real API.
+  private readonly USE_MOCK = true;
   private platformId = inject(PLATFORM_ID);
   private currentUserSubject: BehaviorSubject<User | null>;
   public currentUser$: Observable<User | null>;
@@ -72,6 +75,16 @@ export class AuthService {
    * Esperado: API retorna { access_token, token_type, user: { id, email, role } }
    */
   login(email: string, password: string): Observable<LoginResponse> {
+    if (this.USE_MOCK) {
+      // Simple mock response for local development
+      const user = { id: 'u_mock', email, role: 'user' as const };
+      const mock: LoginResponse = { access_token: 'mock-access-token', token_type: 'bearer', user };
+      // mimic server delay
+      this.setLocalStorage('authToken', mock.access_token);
+      this.setLocalStorage('currentUser', JSON.stringify(user));
+      this.currentUserSubject.next(user);
+      return of(mock).pipe(delay(250));
+    }
     return this.http
       .post<LoginResponse>(`${this.API_BASE}/login`, { email, password })
       .pipe(
@@ -129,6 +142,14 @@ export class AuthService {
    * Registrar novo usuário (opcional, pode ser expandido)
    */
   register(email: string, password: string, role: 'admin' | 'user' = 'user'): Observable<LoginResponse> {
+    if (this.USE_MOCK) {
+      const user = { id: `u_${Math.floor(Math.random() * 10000)}`, email, role } as any;
+      const mock: LoginResponse = { access_token: 'mock-access-token', token_type: 'bearer', user };
+      this.setLocalStorage('authToken', mock.access_token);
+      this.setLocalStorage('currentUser', JSON.stringify(user));
+      this.currentUserSubject.next(user);
+      return of(mock).pipe(delay(250));
+    }
     return this.http
       .post<LoginResponse>(`${this.API_BASE}/register`, { email, password, role })
       .pipe(
