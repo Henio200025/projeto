@@ -6,12 +6,16 @@
   <h1 class="text-4xl font-bold mb-4">Com o que você precisa de uma <span class="text-purple-600">Maozinha</span> hoje?</h1>
   <p class="text-lg text-muted-foreground mb-6">Conecte-se com profissionais talentosos prontos para transformar sua visão em realidade.</p>
 
-      <form (submit)="onSearch($event)" class="max-w-2xl mx-auto mb-8">
-        <div class="flex gap-2 p-2 bg-card rounded-xl shadow border">
+      <form (submit)="onSearch($event)" class="max-w-4xl mx-auto mb-8">
+        <div class="flex gap-3 p-3 sm:p-4 bg-card rounded-xl shadow border items-center">
           <div class="flex-1 relative">
-            <input [(ngModel)]="searchQuery" name="q" class="pl-12 h-14 text-base border-0 focus-visible:ring-0 bg-transparent" placeholder="Qual serviço você está procurando?" />
+            <!-- left icon -->
+            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+              <svg class="w-5 h-5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="6"></circle><path d="M21 21l-4.35-4.35"></path></svg>
+            </div>
+            <input [(ngModel)]="searchQuery" name="q" class="pl-14 h-14 text-lg sm:text-xl border-0 focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground placeholder:text-lg w-full" placeholder="Qual serviço você está procurando?" />
           </div>
-          <button type="submit" class="h-14 px-8 bg-primary text-white rounded btn-animated">Buscar</button>
+          <button type="submit" class="h-14 px-6 sm:px-8 bg-primary text-white rounded-lg btn-animated text-sm sm:text-base">Buscar</button>
         </div>
       </form>
 

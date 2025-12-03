@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -15,18 +15,25 @@ export class LoginComponent implements OnInit {
   loginForm!: FormGroup;
   isLoading = false;
   error: string | null = null;
+  success: string | null = null;
+  public returnUrl: string | null = null;
   showPassword = false;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
+    // capture returnUrl from query params
+    this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+
     // Redirecionar se já estiver logado
     if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/dashboard']);
+      // if there's a target, redirect there, else go to home
+      this.router.navigateByUrl(this.returnUrl || '/');
       return;
     }
 
@@ -51,8 +58,12 @@ export class LoginComponent implements OnInit {
       next: (response) => {
         this.isLoading = false;
         console.log('Login bem-sucedido:', response);
-        // Redirecionar para dashboard ou home
-        this.router.navigate(['/dashboard']);
+        // Redirect to returnUrl when present, else home
+        const target = this.returnUrl || '/';
+        // small success message when staying on page
+        this.success = 'Login bem sucedido — redirecionando...';
+        // navigate
+        this.router.navigateByUrl(target);
       },
       error: (err) => {
         this.isLoading = false;

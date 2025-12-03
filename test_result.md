@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the FreelanceHub marketplace application comprehensively across 7 main pages with key interactions including navigation, forms, buttons, tabs, and responsive design elements."
+user_problem_statement: "Test the UmaMaozinha marketplace application comprehensively across 7 main pages with key interactions including navigation, forms, buttons, tabs, and responsive design elements."
 
 frontend:
   - task: "Homepage Testing"
@@ -246,4 +246,4 @@ test_plan:
 
 agent_communication:
     - agent: "testing"
-    - message: "Starting comprehensive testing of FreelanceHub marketplace application. Will test all 7 main pages plus navigation components. Testing includes UI rendering, interactions, form functionality, navigation, and responsive design."
+    - message: "Starting comprehensive testing of UmaMaozinha marketplace application. Will test all 7 main pages plus navigation components. Testing includes UI rendering, interactions, form functionality, navigation, and responsive design."

@@ -11,8 +11,8 @@
       </button>
     </div>
 
-    <!-- Profile Card -->
-    <div class="bg-white border rounded-lg shadow-lg p-8">
+    <!-- Profile Card: user vs freelancer -->
+    <div *ngIf="currentUser?.role !== 'freelancer'" class="bg-white border rounded-lg shadow-lg p-8">
       <!-- Email Display -->
       <div class="mb-6 pb-6 border-b">
         <p class="text-sm text-muted-foreground mb-1">Email cadastrado</p>
@@ -113,12 +113,150 @@
       </form>
     </div>
 
-    <!-- Role Badge -->
-    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <p class="text-sm text-blue-800">
-        <span class="font-semibold">Tipo de conta:</span>
-        {{ currentUser?.role === 'admin' ? 'Administrador' : 'Usuário Comum' }}
-      </p>
+    <!-- Freelancer profile shown on same /profile page for users with role 'freelancer' -->
+    <div *ngIf="currentUser?.role === 'freelancer'" class="bg-white border rounded-lg shadow-lg p-8">
+      <div *ngIf="freelancerLoading" class="p-6 bg-muted rounded animate-pulse">Carregando perfil de freelancer...</div>
+
+      <div *ngIf="!freelancerLoading && freelancer" class="flex flex-col gap-4">
+        <div class="flex items-center gap-4 mb-2">
+          <div class="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-2xl">{{ freelancer.title?.charAt(0) || 'F' }}</div>
+          <div>
+            <h2 class="text-xl font-bold">{{ freelancer.title }}</h2>
+            <div class="text-sm text-muted-foreground">{{ freelancer.location }}</div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-semibold mb-2">Sobre</h3>
+          <p class="text-sm text-muted-foreground">{{ freelancer.bio }}</p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold mb-2">Skills</h3>
+          <div class="flex gap-2 flex-wrap">
+            <span *ngFor="let s of freelancer.skills || []" class="px-2 py-1 border rounded text-sm">{{ s }}</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mt-2">
+          <div>
+            <p class="text-xs text-muted-foreground">Valor/hora</p>
+            <div class="text-lg font-bold">R$ {{ freelancer.hourlyRate || '—' }}</div>
+          </div>
+          <div>
+            <p class="text-xs text-muted-foreground">Categorias</p>
+            <div class="text-sm">{{ (freelancer.categories || []).join(', ') || '—' }}</div>
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-4 items-center">
+          <button type="button" class="px-4 py-2 bg-primary text-white rounded btn-animated" (click)="toggleEditFreelancer()">Editar perfil de freelancer</button>
+          <!-- single action: Criar Serviço opens inline form -->
+          <button type="button" class="px-4 py-2 border rounded hover:bg-muted" (click)="toggleCreateService()">Criar Serviço</button>
+        </div>
+
+        <!-- Edit freelancer form inline -->
+        <div *ngIf="editingFreelancer" class="mt-4 border rounded p-4 bg-surface">
+          <h4 class="font-semibold mb-2">Editar perfil de freelancer</h4>
+          <form [formGroup]="freelancerEditForm" (ngSubmit)="saveFreelancerEdit()" class="space-y-3">
+            <div>
+              <label class="text-sm mb-1 block">Título</label>
+              <input formControlName="title" class="w-full px-3 py-2 border rounded" />
+            </div>
+            <div>
+              <label class="text-sm mb-1 block">Descrição</label>
+              <textarea formControlName="bio" rows="3" class="w-full px-3 py-2 border rounded"></textarea>
+            </div>
+            <div>
+              <label class="text-sm mb-1 block">Skills (vírgula)</label>
+              <input formControlName="skills" class="w-full px-3 py-2 border rounded" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-sm mb-1 block">Valor/hora</label>
+                <input type="number" formControlName="hourlyRate" class="w-full px-3 py-2 border rounded" />
+              </div>
+              <div>
+                <label class="text-sm mb-1 block">Localização</label>
+                <input formControlName="location" class="w-full px-3 py-2 border rounded" />
+              </div>
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button type="submit" [disabled]="freelancerEditSubmitting" class="px-4 py-2 bg-primary text-white rounded">Salvar</button>
+              <button type="button" (click)="toggleEditFreelancer()" class="px-4 py-2 border rounded">Cancelar</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Meus serviços (publicados pelo freelancer) -->
+        <div *ngIf="showCreateServiceForm" class="mt-4 border rounded p-4 bg-surface">
+          <h4 class="font-semibold mb-2">Novo serviço</h4>
+          <form [formGroup]="createServiceForm" (ngSubmit)="createService()" class="space-y-3">
+            <div>
+              <label class="text-sm mb-1 block">Título</label>
+              <input formControlName="title" class="w-full px-3 py-2 border rounded" />
+              <div *ngIf="createServiceForm.get('title')?.invalid && createServiceForm.get('title')?.touched" class="text-xs text-red-600 mt-1">Título é obrigatório.</div>
+            </div>
+            <div>
+              <label class="text-sm mb-1 block">Descrição</label>
+              <textarea formControlName="description" rows="3" class="w-full px-3 py-2 border rounded"></textarea>
+              <div *ngIf="createServiceForm.get('description')?.invalid && createServiceForm.get('description')?.touched" class="text-xs text-red-600 mt-1">Descrição é obrigatória.</div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-sm mb-1 block">Preço (R$)</label>
+                <input type="number" formControlName="price" class="w-full px-3 py-2 border rounded" />
+              </div>
+              <div>
+                <label class="text-sm mb-1 block">Prazo</label>
+                <input formControlName="deliveryTime" class="w-full px-3 py-2 border rounded" placeholder="Ex: 3 dias" />
+              </div>
+            </div>
+            <div>
+              <label class="text-sm mb-1 block">Categoria</label>
+              <input formControlName="category" class="w-full px-3 py-2 border rounded" placeholder="Ex: Serviços Domésticos" />
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button type="submit" [disabled]="createServiceSubmitting" class="px-4 py-2 bg-primary text-white rounded">{{ createServiceSubmitting ? 'Enviando...' : 'Salvar serviço' }}</button>
+              <button type="button" (click)="toggleCreateService()" class="px-4 py-2 border rounded">Cancelar</button>
+            </div>
+          </form>
+        </div>
+        <div class="mt-6">
+          <h3 class="font-semibold mb-3">Meus serviços</h3>
+          <div *ngIf="servicesLoading" class="p-4 bg-muted rounded animate-pulse">Carregando serviços...</div>
+          <div *ngIf="!servicesLoading && services.length === 0" class="p-4 text-sm text-muted-foreground">Você ainda não publicou serviços. Clique em <a routerLink="/create-service" class="text-primary hover:underline">Criar Serviço</a> para começar.</div>
+          <div *ngIf="!servicesLoading && services.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div *ngFor="let s of services" class="border rounded p-4 bg-white">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-semibold">{{ s.title }}</div>
+                  <div class="text-sm text-muted-foreground">{{ s.category }}</div>
+                </div>
+                <div class="text-lg font-bold">R$ {{ s.price || '—' }}</div>
+              </div>
+              <p class="text-sm text-muted-foreground mt-2">{{ s.description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!freelancerLoading && !freelancer" class="p-6 bg-muted rounded text-center">
+        <div class="text-sm text-muted-foreground">Nenhum perfil de freelancer encontrado — <a routerLink="/become-freelancer" class="text-primary hover:underline">criar perfil</a></div>
+      </div>
+    </div>
+
+    <!-- Simple role hint (compact, no bulky panel) -->
+    <div class="mt-6 flex items-center justify-between">
+      <div class="text-sm text-muted-foreground"><span class="font-semibold">Tipo de conta:</span> {{ currentUser?.role === 'admin' ? 'Administrador' : (currentUser?.role === 'freelancer' ? 'Freelancer' : 'Usuário Comum') }}</div>
+      <div class="flex items-center gap-3">
+        <ng-container *ngIf="currentUser?.role !== 'freelancer'">
+          <button routerLink="/become-freelancer" class="px-3 py-1 bg-primary text-white rounded btn-animated text-sm">Seja Freelancer</button>
+        </ng-container>
+        <ng-container *ngIf="currentUser?.role === 'freelancer' && freelancer?.id">
+          <a [routerLink]="['/freelancer', freelancer.id]" class="text-sm text-primary hover:underline">Ver perfil público</a>
+        </ng-container>
+      </div>
     </div>
   </div>
 </div>

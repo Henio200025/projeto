@@ -21,7 +21,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   navLinks = [
     { label: 'Explorar Serviços', path: '/browse' },
     { label: 'Como Funciona', path: '/how-it-works' },
-    { label: 'Seja Freelancer', path: '/create-service' },
+    { label: 'Seja Freelancer', path: '/become-freelancer' },
   ];
 
   constructor(

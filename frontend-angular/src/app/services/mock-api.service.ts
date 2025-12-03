@@ -94,6 +94,10 @@ export class MockApiService {
 
   private nextReviewId = 100;
   private nextRequestId = 500;
+  private nextFreelancerId = 200;
+  private nextServiceId = 4;
+
+  private freelancers: Array<{ id: string; userId: string; title?: string; bio?: string; skills?: string[]; hourlyRate?: number; categories?: string[]; portfolioUrl?: string; location?: string; createdAt?: string }> = [];
 
   private requests: Array<{ id: string; serviceId: string | number; user: { id: string; name: string }; message?: string; status?: string; createdAt?: string }> = [];
 
@@ -177,5 +181,61 @@ export class MockApiService {
   getRequestsByUser(userId: string) {
     const list = this.requests.filter((r) => r.user?.id === userId);
     return of(list).pipe(delay(100));
+  }
+
+  // freelancer endpoints
+  createFreelancerForUser(userId: string, payload: { title?: string; bio?: string; skills?: string[]; hourlyRate?: number; categories?: string[]; portfolioUrl?: string; location?: string }) {
+    const id = `fr_${this.nextFreelancerId++}`;
+    const item = {
+      id,
+      userId,
+      ...payload,
+      createdAt: new Date().toISOString()
+    };
+    this.freelancers.unshift(item as any);
+    return of(item).pipe(delay(200));
+  }
+
+  updateFreelancer(id: string, payload: { title?: string; bio?: string; skills?: string[]; hourlyRate?: number; categories?: string[]; portfolioUrl?: string; location?: string }) {
+    const idx = this.freelancers.findIndex((x) => x.id === id);
+    if (idx === -1) return of(null).pipe(delay(120));
+    const updated = { ...this.freelancers[idx], ...payload } as any;
+    this.freelancers[idx] = updated;
+    return of(updated).pipe(delay(150));
+  }
+
+  createServiceForFreelancer(freelancerId: string, payload: { title: string; description?: string; price?: number; deliveryTime?: string; category?: string; thumbnailUrl?: string; }) {
+    // create a service and attach the freelancer meta
+    const id = `s${this.nextServiceId++}`;
+    const svc: ServiceItem = {
+      id,
+      title: payload.title,
+      description: payload.description || '',
+      price: payload.price,
+      deliveryTime: payload.deliveryTime,
+      category: payload.category,
+      thumbnailUrl: payload.thumbnailUrl || '',
+      freelancer: { id: freelancerId, name: 'Você', avatar: '', rating: undefined, reviews: undefined },
+      reviews: []
+    } as ServiceItem;
+
+    // push to the beginning of services
+    this.services.unshift(svc);
+    return of(svc).pipe(delay(150));
+  }
+
+  getServicesByFreelancerId(freelancerId: string) {
+    const list = this.services.filter((s) => s.freelancer && s.freelancer.id === freelancerId);
+    return of(list).pipe(delay(150));
+  }
+
+  getFreelancerById(id: string) {
+    const f = this.freelancers.find((x) => x.id === id) || null;
+    return of(f).pipe(delay(150));
+  }
+
+  getFreelancerByUserId(userId: string) {
+    const f = this.freelancers.find((x) => x.userId === userId) || null;
+    return of(f).pipe(delay(150));
   }
 }

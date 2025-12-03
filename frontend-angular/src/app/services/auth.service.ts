@@ -23,7 +23,7 @@ export interface LoginResponse {
 export interface User {
   id: string;
   email: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'freelancer';
   nickname?: string;
 }
 
@@ -126,7 +126,7 @@ export class AuthService {
   /**
    * Verificar se o usuário tem um papel específico
    */
-  hasRole(role: 'admin' | 'user'): boolean {
+  hasRole(role: 'admin' | 'user' | 'freelancer'): boolean {
     return this.currentUserValue?.role === role;
   }
 
@@ -141,7 +141,7 @@ export class AuthService {
   /**
    * Registrar novo usuário (opcional, pode ser expandido)
    */
-  register(email: string, password: string, role: 'admin' | 'user' = 'user'): Observable<LoginResponse> {
+  register(email: string, password: string, role: 'admin' | 'user' | 'freelancer' = 'user'): Observable<LoginResponse> {
     if (this.USE_MOCK) {
       const user = { id: `u_${Math.floor(Math.random() * 10000)}`, email, role } as any;
       const mock: LoginResponse = { access_token: 'mock-access-token', token_type: 'bearer', user };

@@ -36,5 +36,6 @@ export const routes: Routes = [
     component: CreateServiceComponent, 
     canActivate: [authGuardV2]
   },
+  { path: 'become-freelancer', loadComponent: () => import('./pages/become-freelancer/become-freelancer.component').then(m => m.BecomeFreelancerComponent), canActivate: [authGuardV2] },
   { path: '**', redirectTo: '' } // Wildcard route for 404
 ];

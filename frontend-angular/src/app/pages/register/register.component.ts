@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 // Validador customizado para comparar senhas
@@ -26,18 +26,24 @@ export class RegisterComponent implements OnInit {
   registerForm!: FormGroup;
   isLoading = false;
   error: string | null = null;
+  success: string | null = null;
+  public returnUrl: string | null = null;
   showPassword = false;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
+    // capture returnUrl if present
+    this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+
     // Redirecionar se já estiver logado
     if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/dashboard']);
+      this.router.navigateByUrl(this.returnUrl || '/');
       return;
     }
 
@@ -65,8 +71,9 @@ export class RegisterComponent implements OnInit {
       next: (response) => {
         this.isLoading = false;
         console.log('Cadastro bem-sucedido:', response);
-        // Redirecionar para dashboard
-        this.router.navigate(['/dashboard']);
+        this.success = 'Conta criada — redirecionando...';
+        const target = this.returnUrl || '/';
+        this.router.navigateByUrl(target);
       },
       error: (err) => {
         this.isLoading = false;
