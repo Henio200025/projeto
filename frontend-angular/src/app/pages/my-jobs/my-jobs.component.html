@@ -1,0 +1,232 @@
+<div class="my-jobs-container">
+  <div class="header">
+    <h1>Meus Trabalhos</h1>
+    <p class="subtitle">Gerencie seus trabalhos e orçamentos</p>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === 'all'"
+      (click)="filterByStatus('all')">
+      Todos
+    </button>
+    <button 
+      class="filter-btn badge-filter"
+      [class.active]="selectedStatus() === StatusEnum.PENDING_BUDGET"
+      (click)="filterByStatus(StatusEnum.PENDING_BUDGET)">
+      Aguardando Orçamento
+      <span class="badge-count" *ngIf="pendingBudgetCount > 0">
+        {{ pendingBudgetCount }}
+      </span>
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.BUDGETED"
+      (click)="filterByStatus(StatusEnum.BUDGETED)">
+      Aguardando Cliente
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.ACCEPTED"
+      (click)="filterByStatus(StatusEnum.ACCEPTED)">
+      Aceitos
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.IN_PROGRESS"
+      (click)="filterByStatus(StatusEnum.IN_PROGRESS)">
+      Em Andamento
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.COMPLETED"
+      (click)="filterByStatus(StatusEnum.COMPLETED)">
+      Concluídos
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading()" class="loading">
+    <div class="spinner"></div>
+    <p>Carregando trabalhos...</p>
+  </div>
+
+  <!-- Erro -->
+  <div *ngIf="error()" class="error-message">
+    <p>{{ error() }}</p>
+    <button (click)="loadJobs()" class="btn-retry">Tentar Novamente</button>
+  </div>
+
+  <!-- Lista de Trabalhos -->
+  <div *ngIf="!loading() && !error()" class="jobs-list">
+    <div *ngIf="visibleJobs.length === 0" class="empty-state">
+      <p>Você ainda não recebeu nenhum pedido para este filtro.</p>
+    </div>
+
+    <div *ngFor="let job of visibleJobs" class="job-card">
+      <div class="card-header">
+        <div class="title-section">
+          <h3>{{ job.title }}</h3>
+          <span class="status-badge" [ngClass]="getStatusClass(job.status)">
+            {{ StatusLabels[job.status] }}
+          </span>
+        </div>
+        <div class="date">
+          Recebido em {{ formatDate(job.createdAt) }}
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="info-row">
+          <span class="label">Cliente:</span>
+          <span class="value">{{ job.user.name }}</span>
+        </div>
+
+        <!-- Telefone (se aprovado) -->
+        <div *ngIf="isPhoneAvailable(job) && job.userPhone" class="info-row phone-row">
+          <span class="label">📞 Telefone:</span>
+          <span class="value phone">{{ job.userPhone }}</span>
+          <span class="phone-note">(contato liberado)</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Descrição do Cliente:</span>
+          <p class="description">{{ job.description }}</p>
+        </div>
+
+        <!-- Orçamento Atual -->
+        <div *ngIf="job.price !== null && job.price !== undefined" class="budget-section">
+          <div class="budget-header">
+            <h4>Seu Orçamento</h4>
+            <button 
+              *ngIf="canSendBudget(job)" 
+              (click)="openBudgetForm(job.id, {price: job.price, estimatedDays: job.estimatedDays, notes: job.budgetNotes})"
+              class="btn-edit-budget">
+              Editar
+            </button>
+          </div>
+          
+          <div class="budget-details">
+            <div class="info-row">
+              <span class="label">Valor:</span>
+              <span class="value price">{{ formatPrice(job.price) }}</span>
+            </div>
+            
+            <div *ngIf="job.estimatedDays" class="info-row">
+              <span class="label">Prazo:</span>
+              <span class="value">{{ job.estimatedDays }} dias</span>
+            </div>
+            
+            <div *ngIf="job.budgetNotes" class="info-row">
+              <span class="label">Suas Observações:</span>
+              <p class="notes">{{ job.budgetNotes }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form de Orçamento -->
+        <div *ngIf="sendingBudget() === job.id" class="budget-form">
+          <h4>{{ job.price ? 'Editar' : 'Enviar' }} Orçamento</h4>
+          
+          <div class="form-group">
+            <label for="price-{{job.id}}">Valor (R$) *</label>
+            <input 
+              type="number" 
+              id="price-{{job.id}}"
+              [(ngModel)]="budgetForm().price" 
+              min="0" 
+              step="0.01"
+              placeholder="0.00"
+              class="form-input">
+          </div>
+
+          <div class="form-group">
+            <label for="days-{{job.id}}">Prazo (dias)</label>
+            <input 
+              type="number" 
+              id="days-{{job.id}}"
+              [(ngModel)]="budgetForm().estimatedDays" 
+              min="0"
+              placeholder="Ex: 7"
+              class="form-input">
+          </div>
+
+          <div class="form-group">
+            <label for="notes-{{job.id}}">Observações</label>
+            <textarea 
+              id="notes-{{job.id}}"
+              [(ngModel)]="budgetForm().notes" 
+              rows="3"
+              placeholder="Informações adicionais sobre o orçamento..."
+              class="form-textarea"></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button 
+              (click)="submitBudget(job.id, !!job.price)" 
+              class="btn-submit">
+              {{ job.price ? 'Atualizar' : 'Enviar' }} Orçamento
+            </button>
+            <button 
+              (click)="closeBudgetForm()" 
+              class="btn-cancel-form">
+              Cancelar
+            </button>
+          </div>
+        </div>
+
+        <!-- Botão para enviar orçamento pela primeira vez -->
+        <div *ngIf="canSendBudget(job) && !job.price && sendingBudget() !== job.id" class="actions">
+          <button 
+            (click)="openBudgetForm(job.id)" 
+            class="btn-send-budget">
+            💰 Enviar Orçamento
+          </button>
+        </div>
+
+        <!-- Status de resposta do cliente -->
+        <div *ngIf="job.userResponse" class="response-section">
+          <div *ngIf="job.userResponse === 'accepted'" class="response-accepted">
+            <strong>✓ Cliente aceitou seu orçamento!</strong>
+            <p *ngIf="job.respondedAt">em {{ formatDate(job.respondedAt) }}</p>
+            <p class="contact-info">Entre em contato para iniciar o trabalho.</p>
+          </div>
+          
+          <div *ngIf="job.userResponse === 'rejected'" class="response-rejected">
+            <strong>✗ Cliente rejeitou o orçamento</strong>
+            <p *ngIf="job.respondedAt">em {{ formatDate(job.respondedAt) }}</p>
+            <p *ngIf="job.userMessage" class="user-message">Motivo: {{ job.userMessage }}</p>
+          </div>
+        </div>
+
+        <!-- Ações de Progresso -->
+        <div class="progress-actions">
+          <button 
+            *ngIf="canStartWork(job)"
+            (click)="startWork(job.id)" 
+            class="btn-start">
+            ▶️ Iniciar Trabalho
+          </button>
+
+          <button 
+            *ngIf="canCompleteWork(job)"
+            (click)="completeWork(job.id)" 
+            class="btn-complete">
+            ✓ Concluir Trabalho
+          </button>
+
+          <button 
+            *ngIf="job.status !== StatusEnum.COMPLETED && 
+                   job.status !== StatusEnum.CANCELLED && 
+                   job.status !== StatusEnum.REJECTED"
+            (click)="cancelJob(job.id)" 
+            class="btn-cancel-job">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

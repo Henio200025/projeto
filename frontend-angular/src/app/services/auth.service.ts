@@ -4,28 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 import { map } from 'rxjs/operators';
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  access_token: string;
-  token_type: string;
-  user: {
-    id: string;
-    email: string;
-    role: 'admin' | 'user';
-  };
-}
-
-export interface User {
-  id: string;
-  email: string;
-  role: 'admin' | 'user' | 'freelancer';
-  nickname?: string;
-}
+import { LoginRequest, LoginResponse, User } from '../models/user.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -72,30 +51,74 @@ export class AuthService {
 
   /**
    * Fazer login com email e senha
-   * Esperado: API retorna { access_token, token_type, user: { id, email, role } }
+   * Backend Java retorna: { token: string, expiresIn: number }
+   * Extraímos o user do JWT token
    */
   login(email: string, password: string): Observable<LoginResponse> {
     if (this.USE_MOCK) {
-      // Simple mock response for local development
-      const user = { id: 'u_mock', email, role: 'user' as const };
-      const mock: LoginResponse = { access_token: 'mock-access-token', token_type: 'bearer', user };
-      // mimic server delay
-      this.setLocalStorage('authToken', mock.access_token);
+      // Mock response para desenvolvimento local
+      // support preset test accounts for easier local testing
+      let user: User;
+      if (email === 'client@test' || email === 'cliente@test.com') {
+        user = { id: 1001, name: 'Cliente Test', email, role: 'USER' } as User;
+      } else if (email === 'freelancer@test' || email === 'freelancer@test.com') {
+        user = { id: 2001, name: 'Freelancer Test', email, role: 'freelancer', isFreelancer: true } as User;
+      } else {
+        user = { id: 1, name: 'Usuário Mock', email, role: 'USER' } as User;
+      }
+      const mock: LoginResponse = { 
+        token: 'mock-jwt-token', 
+        expiresIn: 3600000 // 1 hora em ms
+      };
+      this.setLocalStorage('authToken', mock.token);
       this.setLocalStorage('currentUser', JSON.stringify(user));
       this.currentUserSubject.next(user);
       return of(mock).pipe(delay(250));
     }
+    
+    const loginReq: LoginRequest = { email, password };
     return this.http
-      .post<LoginResponse>(`${this.API_BASE}/login`, { email, password })
+      .post<LoginResponse>(`${this.API_BASE}/login`, loginReq)
       .pipe(
         map((response) => {
-          // Salvar token e usuário em localStorage
-          this.setLocalStorage('authToken', response.access_token);
-          this.setLocalStorage('currentUser', JSON.stringify(response.user));
-          this.currentUserSubject.next(response.user);
+          // Salvar token
+          this.setLocalStorage('authToken', response.token);
+          
+          // Decodificar JWT para obter user info (simplificado)
+          // Em produção, usar uma lib como jwt-decode
+          const user = this.decodeJwtToken(response.token);
+          
+          this.setLocalStorage('currentUser', JSON.stringify(user));
+          this.currentUserSubject.next(user);
           return response;
         })
       );
+  }
+
+  /**
+   * Decodificar JWT token (simplificado)
+   * Em produção, usar jwt-decode library
+   */
+  private decodeJwtToken(token: string): User {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return {
+        id: payload.userId || 0,
+        name: payload.name || payload.email,
+        email: payload.email || payload.sub,
+        role: payload.roles || 'USER',
+        isFreelancer: payload.roles?.includes('FREELANCER') || false
+      };
+    } catch (e) {
+      // Fallback se decodificação falhar
+      return {
+        id: 0,
+        name: 'User',
+        email: '',
+        role: 'USER',
+        isFreelancer: false
+      };
+    }
   }
 
   /**
@@ -126,8 +149,23 @@ export class AuthService {
   /**
    * Verificar se o usuário tem um papel específico
    */
-  hasRole(role: 'admin' | 'user' | 'freelancer'): boolean {
+  hasRole(role: string): boolean {
     return this.currentUserValue?.role === role;
+  }
+
+  /**
+   * Verificar se é freelancer
+   */
+  isFreelancer(): boolean {
+    const role = String(this.currentUserValue?.role || '').toLowerCase();
+    return role === 'freelancer' || !!this.currentUserValue?.isFreelancer;
+  }
+
+  /**
+   * Verificar se é usuário comum
+   */
+  isUser(): boolean {
+    return this.currentUserValue?.role === 'USER';
   }
 
   /**
@@ -139,24 +177,36 @@ export class AuthService {
   }
 
   /**
-   * Registrar novo usuário (opcional, pode ser expandido)
+   * Registrar novo usuário
+   * Backend Java: POST /api/register
    */
-  register(email: string, password: string, role: 'admin' | 'user' | 'freelancer' = 'user'): Observable<LoginResponse> {
+  register(email: string, password: string, role: string = 'USER'): Observable<LoginResponse> {
     if (this.USE_MOCK) {
-      const user = { id: `u_${Math.floor(Math.random() * 10000)}`, email, role } as any;
-      const mock: LoginResponse = { access_token: 'mock-access-token', token_type: 'bearer', user };
-      this.setLocalStorage('authToken', mock.access_token);
+      const user: User = { 
+        id: Math.floor(Math.random() * 10000), 
+        name: email.split('@')[0],
+        email, 
+        role,
+        isFreelancer: role === 'FREELANCER'
+      };
+      const mock: LoginResponse = { 
+        token: 'mock-jwt-token', 
+        expiresIn: 3600000 
+      };
+      this.setLocalStorage('authToken', mock.token);
       this.setLocalStorage('currentUser', JSON.stringify(user));
       this.currentUserSubject.next(user);
       return of(mock).pipe(delay(250));
     }
+    
     return this.http
       .post<LoginResponse>(`${this.API_BASE}/register`, { email, password, role })
       .pipe(
         map((response) => {
-          this.setLocalStorage('authToken', response.access_token);
-          this.setLocalStorage('currentUser', JSON.stringify(response.user));
-          this.currentUserSubject.next(response.user);
+          this.setLocalStorage('authToken', response.token);
+          const user = this.decodeJwtToken(response.token);
+          this.setLocalStorage('currentUser', JSON.stringify(user));
+          this.currentUserSubject.next(user);
           return response;
         })
       );

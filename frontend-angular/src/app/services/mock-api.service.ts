@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { of } from 'rxjs';
 import { delay } from 'rxjs/operators';
+import { CategoryType, CategoryTypeLabels } from '../models/enums';
 
 export interface Category {
   id: number;
@@ -15,6 +16,7 @@ export interface Freelancer {
   avatar?: string;
   rating?: number;
   reviews?: number;
+  userId?: string;
 }
 
 export interface ServiceItem {
@@ -35,31 +37,40 @@ export interface RequestItem {
   serviceId: string | number;
   user: { id: string; name: string };
   message?: string;
+  title?: string;
   status?: string;
   createdAt?: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class MockApiService {
+  // Categorias do backend (CategoryType enum)
   private categories: Category[] = [
-    { id: 1, name: 'Desenvolvimento Web', icon: '💻', count: 1250 },
-    { id: 2, name: 'Apps Móveis', icon: '📱', count: 850 },
-    { id: 3, name: 'Design & Criativo', icon: '🎨', count: 2100 },
-    { id: 4, name: 'Redação & Conteúdo', icon: '✍️', count: 1650 },
-    { id: 5, name: 'Serviços Domésticos', icon: '🧰', count: 900 }
+    { id: 1, name: CategoryType.Technology, icon: '💻', count: 45 },
+    { id: 2, name: CategoryType.HomeServices, icon: '🏠', count: 120 },
+    { id: 3, name: CategoryType.HealthAndWellness, icon: '💪', count: 67 },
+    { id: 4, name: CategoryType.Education, icon: '📚', count: 89 },
+    { id: 5, name: CategoryType.CreativeArts, icon: '🎨', count: 156 },
+    { id: 6, name: CategoryType.BusinessAndFinance, icon: '💼', count: 78 },
+    { id: 7, name: CategoryType.PersonalCare, icon: '💅', count: 92 },
+    { id: 8, name: CategoryType.EventsAndEntertainment, icon: '🎉', count: 134 },
+    { id: 9, name: CategoryType.WritingAndTranslation, icon: '✍️', count: 103 },
+    { id: 10, name: CategoryType.MarketingAndSales, icon: '📈', count: 88 },
+    { id: 11, name: CategoryType.LegalAndConsulting, icon: '⚖️', count: 54 },
+    { id: 12, name: CategoryType.Other, icon: '📦', count: 41 }
   ];
 
+  // Serviços de teste alinhados com backend (CategoryType enum)
   private services: ServiceItem[] = [
     {
       id: 's1',
-      title: 'Reparo hidráulico rápido',
-      description: 'Conserto de vazamentos e substituição de válvulas',
+      title: 'Reparo hidráulico residencial',
+      description: 'Conserto de vazamentos, substituição de válvulas e manutenção preventiva',
       price: 120,
       deliveryTime: '1 dia',
-      category: 'Serviços Domésticos',
+      category: CategoryType.HomeServices,
       thumbnailUrl: '',
       freelancer: { id: 'u1', name: 'João Silva', avatar: 'JS', rating: 4.8, reviews: 34 },
-      // no images returned by API — placeholder will be used in UI
       reviews: [
         { id: 'r1', score: 5, comment: 'Serviço rápido e muito profissional.', createdAt: '2025-11-20T08:30:00Z', user: { id: 'c1', name: 'Carlos' } }
       ]
@@ -67,30 +78,167 @@ export class MockApiService {
     {
       id: 's2',
       title: 'Instalação elétrica residencial',
-      description: 'Troca de fiação e instalação de pontos',
+      description: 'Troca de fiação, instalação de pontos e quadro elétrico',
       price: 200,
       deliveryTime: '2 dias',
-      category: 'Serviços Domésticos',
+      category: CategoryType.HomeServices,
       thumbnailUrl: '',
       freelancer: { id: 'u2', name: 'Mariana Costa', avatar: 'MC', rating: 4.9, reviews: 52 },
-      // no images returned by API — placeholder will be used in UI
       reviews: [
         { id: 'r2', score: 5, comment: 'Excelente trabalho.', createdAt: '2025-11-10T15:00:00Z', user: { id: 'c2', name: 'Ana' } }
       ]
     },
     {
       id: 's3',
-      title: 'Criação de site institucional',
-      description: 'Site responsivo com 5 páginas',
+      title: 'Desenvolvimento de site institucional',
+      description: 'Site responsivo com 5 páginas, SEO otimizado e painel admin',
       price: 1200,
       deliveryTime: '7 dias',
-      category: 'Desenvolvimento Web',
+      category: CategoryType.Technology,
       thumbnailUrl: '',
       freelancer: { id: 'u3', name: 'Sarah Johnson', avatar: 'SJ', rating: 4.9, reviews: 127 },
-      // no images returned by API — placeholder will be used in UI
+      reviews: []
+    },
+    {
+      id: 's4',
+      title: 'Aulas particulares de Inglês',
+      description: 'Aulas online individuais para todos os níveis, material incluso',
+      price: 80,
+      deliveryTime: '1 hora',
+      category: CategoryType.Education,
+      thumbnailUrl: '',
+      freelancer: { id: 'u4', name: 'Michael Brown', avatar: 'MB', rating: 4.7, reviews: 89 },
+      reviews: []
+    },
+    {
+      id: 's5',
+      title: 'Design de logotipo profissional',
+      description: '3 conceitos iniciais, revisões ilimitadas, arquivos em alta resolução',
+      price: 350,
+      deliveryTime: '5 dias',
+      category: CategoryType.CreativeArts,
+      thumbnailUrl: '',
+      freelancer: { id: 'u5', name: 'Isabella Rodrigues', avatar: 'IR', rating: 5.0, reviews: 156 },
+      reviews: []
+    },
+    {
+      id: 's6',
+      title: 'Consultoria de marketing digital',
+      description: 'Análise completa, estratégia de redes sociais e plano de ação',
+      price: 600,
+      deliveryTime: '7 dias',
+      category: CategoryType.MarketingAndSales,
+      thumbnailUrl: '',
+      freelancer: { id: 'u6', name: 'Lucas Mendes', avatar: 'LM', rating: 4.8, reviews: 74 },
+      reviews: []
+    },
+    {
+      id: 's7',
+      title: 'Tradução PT-EN profissional',
+      description: 'Tradução certificada de documentos e textos técnicos',
+      price: 150,
+      deliveryTime: '3 dias',
+      category: CategoryType.WritingAndTranslation,
+      thumbnailUrl: '',
+      freelancer: { id: 'u7', name: 'Amanda Santos', avatar: 'AS', rating: 4.9, reviews: 103 },
+      reviews: []
+    },
+    {
+      id: 's8',
+      title: 'Personal trainer online',
+      description: 'Treino personalizado, acompanhamento semanal e plano nutricional',
+      price: 250,
+      deliveryTime: '30 dias',
+      category: CategoryType.HealthAndWellness,
+      thumbnailUrl: '',
+      freelancer: { id: 'u8', name: 'Rafael Oliveira', avatar: 'RO', rating: 4.8, reviews: 67 },
+      reviews: []
+    },
+    {
+      id: 's9',
+      title: 'Manicure e pedicure domiciliar',
+      description: 'Atendimento em domicílio com produtos profissionais',
+      price: 60,
+      deliveryTime: '1 hora',
+      category: CategoryType.PersonalCare,
+      thumbnailUrl: '',
+      freelancer: { id: 'u9', name: 'Julia Lima', avatar: 'JL', rating: 4.9, reviews: 92 },
+      reviews: []
+    },
+    {
+      id: 's10',
+      title: 'DJ para festas e eventos',
+      description: 'Equipamento profissional, playlist personalizada, 4 horas',
+      price: 800,
+      deliveryTime: '1 dia',
+      category: CategoryType.EventsAndEntertainment,
+      thumbnailUrl: '',
+      freelancer: { id: 'u10', name: 'Bruno Castro', avatar: 'BC', rating: 4.7, reviews: 134 },
+      reviews: []
+    },
+    {
+      id: 's11',
+      title: 'Consultoria jurídica empresarial',
+      description: 'Análise de contratos, parecer jurídico e orientação legal',
+      price: 450,
+      deliveryTime: '5 dias',
+      category: CategoryType.LegalAndConsulting,
+      thumbnailUrl: '',
+      freelancer: { id: 'u11', name: 'Dr. Pedro Alves', avatar: 'PA', rating: 5.0, reviews: 54 },
+      reviews: []
+    },
+    {
+      id: 's12',
+      title: 'Assessoria financeira pessoal',
+      description: 'Planejamento financeiro, investimentos e controle de gastos',
+      price: 380,
+      deliveryTime: '7 dias',
+      category: CategoryType.BusinessAndFinance,
+      thumbnailUrl: '',
+      freelancer: { id: 'u12', name: 'Fernanda Souza', avatar: 'FS', rating: 4.8, reviews: 78 },
       reviews: []
     }
   ];
+
+  // Seed test freelancer and service for local testing
+  // Freelancer userId 2001, client userId 1001
+  constructor() {
+    // add a dedicated freelancer profile
+    const testFreelancer = {
+      id: `fr_2001`,
+      userId: '2001',
+      title: 'Freelancer Test',
+      description: 'Perfil de teste para o freelancer.',
+      categories: [CategoryType.HomeServices],
+      createdAt: new Date().toISOString()
+    };
+    this.freelancers.unshift(testFreelancer as any);
+
+    // add a service owned by this freelancer
+    const testService: ServiceItem = {
+      id: 's100',
+      title: 'Serviço de Teste - Limpeza Residencial',
+      description: 'Serviço completo de limpeza criado para teste entre contas mock.',
+      price: 150,
+      deliveryTime: '2 dias',
+      category: CategoryType.HomeServices,
+      thumbnailUrl: '',
+      freelancer: { id: testFreelancer.id, userId: '2001', name: 'Freelancer Test', avatar: 'FT', rating: 4.7, reviews: 10 },
+      reviews: []
+    };
+    this.services.unshift(testService);
+
+    // add a pending request from client (userId 1001)
+    const testRequest = {
+      id: `req${this.nextRequestId++}`,
+      serviceId: testService.id,
+      user: { id: '1001', name: 'Cliente Test' },
+      message: 'Olá, preciso deste serviço. Podemos conversar?',
+      status: 'PENDING',
+      createdAt: new Date().toISOString()
+    };
+    this.requests.unshift(testRequest as any);
+  }
 
   private nextReviewId = 100;
   private nextRequestId = 500;
@@ -110,18 +258,62 @@ export class MockApiService {
   }
 
   searchServices(query = '', category?: string, page = 1, perPage = 12) {
+    return this.searchServicesWithParams({ q: query, category, page, perPage });
+  }
+
+  /**
+   * Nova versão de busca que aceita um objeto de filtros.
+   * Prepara o método para futura integração com backend real.
+   */
+  searchServicesWithParams(params: {
+    q?: string;
+    category?: string;
+    page?: number;
+    perPage?: number;
+    minPrice?: number;
+    maxPrice?: number;
+    minRating?: number;
+    deliveryTime?: string; // ex: '1 dia', '7 dias'
+    sortBy?: 'price_asc' | 'price_desc' | 'rating_desc' | 'newest';
+    onlyAvailable?: boolean;
+  }) {
+    const q = (params.q || '').toLowerCase();
     let results = this.services.filter((s) => {
-      const q = query.toLowerCase();
       return (
-        s.title.toLowerCase().includes(q) ||
+        (s.title || '').toLowerCase().includes(q) ||
         (s.description || '').toLowerCase().includes(q) ||
-        (s.category || '').toLowerCase().includes(q)
+        (s.category || '').toLowerCase().includes(q) ||
+        (s.freelancer?.name || '').toLowerCase().includes(q)
       );
     });
-    if (category) {
-      results = results.filter((s) => s.category === category);
+
+    if (params.category) {
+      results = results.filter((s) => s.category === params.category);
+    }
+    if (typeof params.minPrice === 'number') {
+      results = results.filter((s) => typeof s.price === 'number' && s.price >= params.minPrice!);
+    }
+    if (typeof params.maxPrice === 'number') {
+      results = results.filter((s) => typeof s.price === 'number' && s.price <= params.maxPrice!);
+    }
+    if (typeof params.minRating === 'number') {
+      results = results.filter((s) => typeof s.freelancer?.rating === 'number' && (s.freelancer!.rating! >= params.minRating!));
+    }
+    if (params.deliveryTime) {
+      // simple match: includes string (backend may use enum/number, mapping will be done in integration)
+      results = results.filter((s) => (s.deliveryTime || '').toLowerCase().includes(params.deliveryTime!.toLowerCase()));
     }
 
+    // Sorting
+    if (params.sortBy) {
+      if (params.sortBy === 'price_asc') results = results.sort((a, b) => (a.price || 0) - (b.price || 0));
+      if (params.sortBy === 'price_desc') results = results.sort((a, b) => (b.price || 0) - (a.price || 0));
+      if (params.sortBy === 'rating_desc') results = results.sort((a, b) => (b.freelancer?.rating || 0) - (a.freelancer?.rating || 0));
+      if (params.sortBy === 'newest') results = results; // mock already pushes newest first
+    }
+
+    const page = params.page || 1;
+    const perPage = params.perPage || 12;
     const start = (page - 1) * perPage;
     const data = results.slice(start, start + perPage);
 
@@ -130,7 +322,7 @@ export class MockApiService {
   }
 
   getServiceById(id: string | number) {
-    const item = this.services.find((s) => s.id == id);
+    const item = this.services.find((s) => s.id == id) || null;
     return of(item).pipe(delay(150));
   }
 
@@ -161,7 +353,7 @@ export class MockApiService {
   }
 
   // requests (orçamentos)
-  postRequest(serviceId: string | number, payload: { user: { id: string; name: string }; message?: string }): import('rxjs').Observable<RequestItem | null> {
+  postRequest(serviceId: string | number, payload: { user: { id: string; name: string }; message?: string; title?: string }): import('rxjs').Observable<RequestItem | null> {
     const svc = this.services.find((s) => s.id == serviceId);
     if (!svc) return of(null as RequestItem | null).pipe(delay(100));
 
@@ -170,6 +362,7 @@ export class MockApiService {
       serviceId: serviceId as any,
       user: payload.user,
       message: payload.message || '',
+      title: payload.title || svc.title || 'Solicita\u00e7\u00e3o de Servi\u00e7o',
       status: 'PENDING',
       createdAt: new Date().toISOString()
     };
@@ -178,13 +371,13 @@ export class MockApiService {
     return of(req as RequestItem).pipe(delay(150));
   }
 
-  getRequestsByUser(userId: string) {
-    const list = this.requests.filter((r) => r.user?.id === userId);
+  getRequestsByUser(userId: string | number) {
+    const list = this.requests.filter((r) => r.user?.id == userId);
     return of(list).pipe(delay(100));
   }
 
   // freelancer endpoints
-  createFreelancerForUser(userId: string, payload: { title?: string; bio?: string; skills?: string[]; hourlyRate?: number; categories?: string[]; portfolioUrl?: string; location?: string }) {
+  createFreelancerForUser(userId: string | number, payload: { title?: string; bio?: string; skills?: string[]; hourlyRate?: number; categories?: string[]; portfolioUrl?: string; location?: string }) {
     const id = `fr_${this.nextFreelancerId++}`;
     const item = {
       id,
@@ -196,15 +389,15 @@ export class MockApiService {
     return of(item).pipe(delay(200));
   }
 
-  updateFreelancer(id: string, payload: { title?: string; bio?: string; skills?: string[]; hourlyRate?: number; categories?: string[]; portfolioUrl?: string; location?: string }) {
-    const idx = this.freelancers.findIndex((x) => x.id === id);
+  updateFreelancer(id: string | number, payload: { title?: string; bio?: string; skills?: string[]; hourlyRate?: number; categories?: string[]; portfolioUrl?: string; location?: string }) {
+    const idx = this.freelancers.findIndex((x) => x.id == id);
     if (idx === -1) return of(null).pipe(delay(120));
     const updated = { ...this.freelancers[idx], ...payload } as any;
     this.freelancers[idx] = updated;
     return of(updated).pipe(delay(150));
   }
 
-  createServiceForFreelancer(freelancerId: string, payload: { title: string; description?: string; price?: number; deliveryTime?: string; category?: string; thumbnailUrl?: string; }) {
+  createServiceForFreelancer(freelancerId: string | number, payload: { title: string; description?: string; price?: number; deliveryTime?: string; category?: string; thumbnailUrl?: string; }) {
     // create a service and attach the freelancer meta
     const id = `s${this.nextServiceId++}`;
     const svc: ServiceItem = {
@@ -224,18 +417,18 @@ export class MockApiService {
     return of(svc).pipe(delay(150));
   }
 
-  getServicesByFreelancerId(freelancerId: string) {
-    const list = this.services.filter((s) => s.freelancer && s.freelancer.id === freelancerId);
+  getServicesByFreelancerId(freelancerId: string | number) {
+    const list = this.services.filter((s) => s.freelancer && s.freelancer.id == freelancerId);
     return of(list).pipe(delay(150));
   }
 
-  getFreelancerById(id: string) {
-    const f = this.freelancers.find((x) => x.id === id) || null;
+  getFreelancerById(id: string | number) {
+    const f = this.freelancers.find((x) => x.id == id) || null;
     return of(f).pipe(delay(150));
   }
 
-  getFreelancerByUserId(userId: string) {
-    const f = this.freelancers.find((x) => x.userId === userId) || null;
+  getFreelancerByUserId(userId: string | number) {
+    const f = this.freelancers.find((x) => x.userId == userId) || null;
     return of(f).pipe(delay(150));
   }
 }

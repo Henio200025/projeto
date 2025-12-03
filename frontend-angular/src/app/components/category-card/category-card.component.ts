@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { CategoryLabelPipe } from '../../pipes/category-label.pipe';
 
 export interface CategoryCardModel {
   id: number | string;
@@ -10,6 +11,7 @@ export interface CategoryCardModel {
 @Component({
   selector: 'app-category-card',
   standalone: true,
+  imports: [CategoryLabelPipe],
   templateUrl: './category-card.component.html',
   styleUrls: ['./category-card.component.css']
 })

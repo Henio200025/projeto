@@ -1,14 +1,16 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService, User } from '../../services/auth.service';
+import { AuthService } from '../../services/auth.service';
+import { User } from '../../models/user.model';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, NotificationBellComponent],
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css']
 })
@@ -23,6 +25,31 @@ export class NavbarComponent implements OnInit, OnDestroy {
     { label: 'Como Funciona', path: '/how-it-works' },
     { label: 'Seja Freelancer', path: '/become-freelancer' },
   ];
+
+  // Links dinâmicos baseados no tipo de usuário
+  get userLinks() {
+    if (!this.currentUser) return [];
+    
+    const links = [
+      { label: 'Perfil', path: '/profile' },
+    ];
+
+    // Se for freelancer, mostra "Trabalhos"
+    if (this.isFreelancer) {
+      links.push({ label: 'Meus Trabalhos', path: '/my-jobs' });
+    }
+
+    // Todos usuários podem fazer pedidos
+    links.push({ label: 'Meus Pedidos', path: '/my-requests' });
+
+    return links;
+  }
+
+  get isFreelancer(): boolean {
+    const role = this.currentUser?.role;
+    if (!role) return false;
+    return String(role).toLowerCase() === 'freelancer' || !!this.currentUser?.isFreelancer;
+  }
 
   constructor(
     private router: Router,

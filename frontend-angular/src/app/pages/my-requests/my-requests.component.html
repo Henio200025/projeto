@@ -1,0 +1,157 @@
+<div class="my-requests-container">
+  <div class="header">
+    <h1>Meus Pedidos</h1>
+    <p class="subtitle">Acompanhe seus pedidos de serviços</p>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === 'all'"
+      (click)="filterByStatus('all')">
+      Todos
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.PENDING_BUDGET"
+      (click)="filterByStatus(StatusEnum.PENDING_BUDGET)">
+      Aguardando Orçamento
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.BUDGETED"
+      (click)="filterByStatus(StatusEnum.BUDGETED)">
+      Orçamento Recebido
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.IN_PROGRESS"
+      (click)="filterByStatus(StatusEnum.IN_PROGRESS)">
+      Em Andamento
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.COMPLETED"
+      (click)="filterByStatus(StatusEnum.COMPLETED)">
+      Concluídos
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading()" class="loading">
+    <div class="spinner"></div>
+    <p>Carregando pedidos...</p>
+  </div>
+
+  <!-- Erro -->
+  <div *ngIf="error()" class="error-message">
+    <p>{{ error() }}</p>
+    <button (click)="loadRequests()" class="btn-retry">Tentar Novamente</button>
+  </div>
+
+  <!-- Lista de Pedidos -->
+  <div *ngIf="!loading() && !error()" class="requests-list">
+    <div *ngIf="requests().length === 0" class="empty-state">
+      <p>Você ainda não fez nenhum pedido.</p>
+      <a href="/browse-services" class="btn-primary">Buscar Freelancers</a>
+    </div>
+
+    <div *ngFor="let request of requests()" class="request-card">
+      <div class="card-header">
+        <div class="title-section">
+          <h3>{{ request.title }}</h3>
+          <span class="status-badge" [ngClass]="getStatusClass(request.status)">
+            {{ StatusLabels[request.status] }}
+          </span>
+        </div>
+        <div class="date">
+          Criado em {{ formatDate(request.createdAt) }}
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="info-row">
+          <span class="label">Freelancer:</span>
+          <span class="value">{{ request.freelancer.user.name }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Descrição:</span>
+          <p class="description">{{ request.description }}</p>
+        </div>
+
+        <!-- Orçamento (se freelancer já enviou) -->
+        <div *ngIf="request.price !== null && request.price !== undefined" class="budget-section">
+          <div class="budget-header">
+            <h4>Orçamento</h4>
+          </div>
+          
+          <div class="budget-details">
+            <div class="info-row">
+              <span class="label">Valor:</span>
+              <span class="value price">{{ formatPrice(request.price) }}</span>
+            </div>
+            
+            <div *ngIf="request.estimatedDays" class="info-row">
+              <span class="label">Prazo:</span>
+              <span class="value">{{ request.estimatedDays }} dias</span>
+            </div>
+            
+            <div *ngIf="request.budgetNotes" class="info-row">
+              <span class="label">Observações:</span>
+              <p class="notes">{{ request.budgetNotes }}</p>
+            </div>
+            
+            <div *ngIf="request.budgetSentAt" class="info-row">
+              <span class="label">Enviado em:</span>
+              <span class="value">{{ formatDate(request.budgetSentAt) }}</span>
+            </div>
+          </div>
+
+          <!-- Ações: Aceitar/Rejeitar Orçamento -->
+          <div *ngIf="canRespondBudget(request)" class="actions">
+            <button 
+              (click)="acceptBudget(request.id)" 
+              class="btn-accept">
+              ✓ Aceitar Orçamento
+            </button>
+            <button 
+              (click)="rejectBudget(request.id)" 
+              class="btn-reject">
+              ✗ Rejeitar
+            </button>
+          </div>
+        </div>
+
+        <!-- Status de resposta -->
+        <div *ngIf="request.userResponse" class="response-section">
+          <div *ngIf="request.userResponse === 'accepted'" class="response-accepted">
+            <strong>✓ Você aceitou este orçamento</strong>
+            <p *ngIf="request.respondedAt">em {{ formatDate(request.respondedAt) }}</p>
+            <p class="phone-info">O freelancer recebeu seu telefone de contato.</p>
+          </div>
+          
+          <div *ngIf="request.userResponse === 'rejected'" class="response-rejected">
+            <strong>✗ Você rejeitou este orçamento</strong>
+            <p *ngIf="request.respondedAt">em {{ formatDate(request.respondedAt) }}</p>
+            <p *ngIf="request.userMessage" class="user-message">Motivo: {{ request.userMessage }}</p>
+          </div>
+        </div>
+
+        <!-- Ação: Cancelar Pedido -->
+        <div 
+          *ngIf="request.status !== StatusEnum.COMPLETED && 
+                 request.status !== StatusEnum.CANCELLED && 
+                 request.status !== StatusEnum.REJECTED"
+          class="cancel-section">
+          <button 
+            (click)="cancelRequest(request.id)" 
+            class="btn-cancel">
+            Cancelar Pedido
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

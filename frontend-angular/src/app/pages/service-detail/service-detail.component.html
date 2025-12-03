@@ -1,103 +1,169 @@
-<div class="max-w-6xl mx-auto p-6">
-  <button routerLink="/browse" class="text-sm px-3 py-1 rounded border border-muted/40 bg-white hover:bg-muted/10 inline-flex items-center gap-2 mb-4">← Voltar</button>
-
-  <div *ngIf="loading" class="animate-pulse p-8 bg-muted rounded">
-    <div class="h-8 bg-muted rounded mb-4 w-3/4"></div>
-    <div class="h-64 bg-muted rounded mb-4"></div>
-    <div class="h-4 bg-muted rounded mb-2"></div>
-    <div class="h-4 bg-muted rounded mb-2 w-5/6"></div>
-  </div>
-
-  <div *ngIf="!loading && service" class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-    <!-- Main -->
-    <div class="lg:col-span-2">
-      <h1 class="text-2xl font-bold mb-2">{{ service.title }}</h1>
-      <div class="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-        <div>⭐ {{ service.freelancer?.rating }} · {{ service.freelancer?.reviews }} avaliações</div>
-        <div class="text-xs">·</div>
-        <div class="text-xs">{{ service.deliveryTime }}</div>
-      </div>
-
-      <!-- Gallery / Placeholder (backend doesn't return images) -->
-      <div class="mb-6">
-        <div class="w-full rounded-lg mb-3 bg-gradient-to-r from-primary/20 to-slate-100 h-56 flex items-center justify-center border">
-          <div class="text-center text-muted-foreground">
-            <div class="text-3xl font-bold text-primary">{{ service.title?.charAt(0) }}</div>
-            <div class="text-sm mt-2">Imagem não disponível — placeholder</div>
-          </div>
+<div class="min-h-screen bg-gray-50 p-6">
+  <!-- Loading State -->
+  @if (loading) {
+    <div class="max-w-6xl mx-auto p-6">
+      <div class="animate-pulse">
+        <div class="h-8 bg-gray-300 rounded w-1/4 mb-6"></div>
+        <div class="bg-white rounded-lg p-8 shadow-sm">
+          <div class="h-64 bg-gray-300 rounded mb-6"></div>
+          <div class="h-6 bg-gray-300 rounded w-3/4 mb-4"></div>
+          <div class="h-4 bg-gray-300 rounded w-1/2 mb-6"></div>
+          <div class="h-32 bg-gray-300 rounded"></div>
         </div>
       </div>
+    </div>
+  }
 
-      <div class="mb-8">
-        <h2 class="font-semibold mb-2">Descrição</h2>
-        <p class="text-muted-foreground">{{ service.description }}</p>
-      </div>
+  <!-- Service Details -->
+  @if (!loading && service) {
+    <div class="max-w-6xl mx-auto p-6">
+      <!-- Back Button -->
+      <button 
+        (click)="goBack()"
+        class="mb-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        Voltar para busca
+      </button>
 
-      <div class="mb-8">
-        <h3 class="font-semibold mb-3">Avaliações</h3>
-        <div *ngIf="service.reviews?.length; else noReviews">
-          <div *ngFor="let r of service.reviews" class="p-3 border rounded mb-2">
-            <div class="flex items-center justify-between mb-1">
-              <div class="font-medium">{{ r.user?.name || 'Anônimo' }}</div>
-              <div class="text-sm text-muted-foreground">{{ r.createdAt | date:'short' }}</div>
+      <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <!-- Service Header -->
+        <div class="p-8 border-b">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex-1">
+              <div class="text-sm text-purple-600 font-medium mb-2">{{ service.category }}</div>
+              <h1 class="text-3xl font-bold mb-2">{{ service.title }}</h1>
+              <div class="flex items-center gap-4 text-sm text-muted-foreground">
+                <div class="flex items-center gap-1">
+                  <span class="text-yellow-500">★</span>
+                  <span class="font-medium">{{ service.freelancer?.rating || 0 }}</span>
+                  <span>({{ service.freelancer?.reviews || 0 }} avaliações)</span>
+                </div>
+                <span>•</span>
+                <span>Por {{ service.freelancer?.name || 'Freelancer' }}</span>
+              </div>
             </div>
-            <div class="text-sm">⭐ {{ r.score }}</div>
-            <div class="text-sm text-muted-foreground mt-2">{{ r.comment }}</div>
+            <div class="text-right">
+              <div class="text-sm text-muted-foreground mb-1">A partir de</div>
+              <div class="text-3xl font-bold text-purple-600">R$ {{ service.price }}</div>
+            </div>
           </div>
         </div>
-        <ng-template #noReviews>
-          <div class="text-sm text-muted-foreground">Ainda não há avaliações — seja o primeiro a avaliar.</div>
-        </ng-template>
-      </div>
 
-      <!-- Submit rating -->
-      <div class="mb-8 p-4 border rounded">
-        <h4 class="font-semibold mb-2">Deixe sua avaliação</h4>
-        <div class="flex items-center gap-3 mb-3">
-          <label class="text-sm">Nota:</label>
-          <select [(ngModel)]="ratingScore" class="px-3 py-1 border rounded text-sm">
-            <option *ngFor="let n of [5,4,3,2,1]" [value]="n">{{ n }}</option>
-          </select>
-        </div>
-        <textarea [(ngModel)]="ratingComment" rows="3" class="w-full border rounded p-2 mb-3" placeholder="Compartilhe sua experiência..."></textarea>
-        <div class="flex items-center gap-2">
-          <button (click)="submitRating()" [disabled]="submittingRating" class="px-4 py-2 bg-primary text-white rounded btn-animated">Enviar avaliação</button>
-          <div *ngIf="submittingRating" class="text-sm text-muted-foreground">Enviando...</div>
+        <!-- Service Content -->
+        <div class="grid md:grid-cols-3 gap-6 p-8">
+          <!-- Main Content -->
+          <div class="md:col-span-2 space-y-6">
+            <div>
+              <h2 class="text-xl font-bold mb-3">Descrição do Serviço</h2>
+              <p class="text-muted-foreground leading-relaxed">{{ service.description }}</p>
+            </div>
+
+            <div>
+              <h2 class="text-xl font-bold mb-3">O que está incluso</h2>
+              <ul class="space-y-2">
+                <li class="flex items-start gap-2">
+                  <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span class="text-muted-foreground">Atendimento profissional e qualificado</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span class="text-muted-foreground">Garantia de qualidade</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span class="text-muted-foreground">Suporte durante todo o processo</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="space-y-4">
+            <div class="border rounded-lg p-6 sticky top-6">
+              <div class="space-y-4">
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-muted-foreground">Prazo de entrega</span>
+                  <span class="font-medium">{{ service.deliveryTime || '7 dias' }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-muted-foreground">Categoria</span>
+                  <span class="font-medium">{{ service.category }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-muted-foreground">Status</span>
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Disponível
+                  </span>
+                </div>
+
+                @if (!isOwner) {
+                  <button 
+                    (click)="requestService()"
+                    class="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                    Solicitar Orçamento
+                  </button>
+                } @else {
+                  <div class="text-center p-4 bg-gray-100 rounded-lg">
+                    <p class="text-sm text-gray-600">Este é seu serviço</p>
+                  </div>
+                }
+
+                <div class="pt-4 border-t">
+                  <h3 class="font-bold mb-3">Sobre o Freelancer</h3>
+                  <div class="flex items-center gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
+                      {{ (service.freelancer?.name || 'F').charAt(0) }}
+                    </div>
+                    <div>
+                      <div class="font-medium">{{ service.freelancer?.name || 'Freelancer' }}</div>
+                      <div class="text-sm text-muted-foreground">Freelancer</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 text-sm">
+                    <span class="text-yellow-500">★</span>
+                    <span class="font-medium">{{ service.freelancer?.rating || 0 }}</span>
+                    <span class="text-muted-foreground">({{ service.freelancer?.reviews || 0 }} avaliações)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+  }
 
-    <!-- Sidebar -->
-    <aside class="border rounded p-4 bg-white">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold">{{ service.freelancer?.name?.charAt(0) }}</div>
-        <div>
-          <div class="font-semibold">{{ service.freelancer?.name }}</div>
-          <div class="text-xs text-muted-foreground">{{ service.location || 'Localização não informada' }}</div>
-        </div>
+  <!-- Error State -->
+  @if (!loading && !service) {
+    <div class="max-w-6xl mx-auto p-6">
+      <div class="bg-white rounded-lg p-8 text-center">
+        <p class="text-gray-600 mb-4">Serviço não encontrado</p>
+        <button 
+          (click)="goBack()"
+          class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+          Voltar para busca
+        </button>
       </div>
-      <div class="mb-4">
-        <div class="text-sm text-muted-foreground">A partir de</div>
-        <div class="text-2xl font-bold">R$ {{ service.price }}</div>
-      </div>
-      <button (click)="openRequest()" class="w-full px-3 py-2 bg-primary text-white rounded mb-2 btn-animated">Pedir Orçamento</button>
-      <button class="w-full px-3 py-2 border border-muted/40 text-primary rounded hover:bg-muted/10">Ver perfil</button>
-
-      <div class="mt-6">
-        <h5 class="font-semibold mb-2">Serviços relacionados</h5>
-        <app-service-card *ngFor="let s of [1,2]" [service]="{ id: 's3', title: 'Serviço relacionado', description: 'Exemplo', price: 99 }" (open)="goToRelated($event)"></app-service-card>
-      </div>
-    </aside>
-  </div>
-
-  <div *ngIf="!loading && !service" class="p-8 bg-muted rounded text-center mt-6">
-    <h2 class="text-xl font-semibold mb-2">Serviço não encontrado</h2>
-    <p class="text-sm text-muted-foreground mb-4">O serviço requisitado não existe ou foi removido.</p>
-    <div class="flex justify-center gap-3">
-      <button routerLink="/browse" class="px-4 py-2 border rounded">Voltar à busca</button>
-      <button routerLink="/" class="px-4 py-2 bg-primary text-white rounded btn-animated">Ir para home</button>
     </div>
-  </div>
+  }
 
-  <app-request-modal [open]="modalOpen" [serviceId]="service?.id" [serviceTitle]="service?.title" (closed)="onRequestClosed()" (submitted)="onRequestSubmitted($event)"></app-request-modal>
+  <!-- Modal de Solicitação de Orçamento -->
+  @if (showModal() && service && service.freelancer) {
+    <app-request-service-modal
+      [serviceId]="service.id"
+      [freelancerId]="service.freelancer.id"
+      [freelancerName]="service.freelancer.name || 'Freelancer'"
+      [serviceName]="service.title"
+      (closeModal)="closeModal()"
+      (requestCreated)="onRequestCreated()">
+    </app-request-service-modal>
+  }
 </div>

@@ -2,14 +2,16 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService, User } from '../../services/auth.service';
+import { AuthService } from '../../services/auth.service';
+import { User } from '../../models/user.model';
 import { MockApiService } from '../../services/mock-api.service';
 import { ChangeDetectorRef } from '@angular/core';
+import { CategoryLabelPipe } from '../../pipes/category-label.pipe';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, CategoryLabelPipe],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.css']
 })
@@ -47,20 +49,46 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
+    // Inicializar formulário DEPOIS de ter o currentUser
     this.initializeForm();
+    
+    console.log('Profile loaded with user:', this.currentUser);
+
+    // Subscrever para mudanças no usuário atual
+    this.authService.currentUser$.subscribe(user => {
+      if (user && user !== this.currentUser) {
+        console.log('User data updated, reloading form');
+        this.currentUser = user;
+        this.reloadFormData();
+      }
+    });
 
     // if the logged-in user is a freelancer, fetch their freelancer profile
-    if (this.currentUser.role === 'freelancer') {
+    if (String(this.currentUser.role || '').toLowerCase() === 'freelancer') {
       this.freelancerLoading = true;
       this.api.getFreelancerByUserId(this.currentUser.id).subscribe((f) => {
         this.freelancer = f;
         this.freelancerLoading = false;
-        try { this.cd.markForCheck(); } catch (e) {}
+        this.cd.markForCheck();
         // after we know freelancer identity, try load services owned by this user
         this.fetchServicesForFreelancer();
       });
     }
+  }
 
+  /**
+   * Recarrega os dados do formulário com os valores atuais do usuário
+   */
+  private reloadFormData(): void {
+    if (this.profileForm && this.currentUser) {
+      this.profileForm.patchValue({
+        nickname: this.currentUser.nickname || '',
+        phone: this.currentUser.phone || '',
+        name: this.currentUser.name || '',
+        bio: this.currentUser.bio || ''
+      });
+      this.cd.markForCheck();
+    }
   }
 
   private fetchServicesForFreelancer(): void {
@@ -88,10 +116,10 @@ export class ProfileComponent implements OnInit {
 
   initializeForm(): void {
     this.profileForm = this.fb.group({
-      nickname: ['', [Validators.minLength(3)]],
-      phone: ['', [Validators.pattern(/^\d{0,11}$/)]],
-      name: ['', [Validators.minLength(3)]],
-      bio: ['', [Validators.maxLength(500)]]
+      nickname: [this.currentUser?.nickname || '', [Validators.minLength(3)]],
+      phone: [this.currentUser?.phone || ''],
+      name: [this.currentUser?.name || '', [Validators.minLength(3)]],
+      bio: [this.currentUser?.bio || '', [Validators.maxLength(500)]]
     });
   }
 
@@ -126,8 +154,28 @@ export class ProfileComponent implements OnInit {
   }
 
   saveFreelancerEdit(): void {
-    if (!this.freelancerEditForm || this.freelancerEditForm.invalid) return;
-    if (!this.freelancer) return;
+    console.log('saveFreelancerEdit called');
+    console.log('Form valid:', this.freelancerEditForm?.valid);
+    console.log('Form value:', this.freelancerEditForm?.value);
+    
+    if (!this.freelancerEditForm) {
+      console.error('Form not initialized');
+      return;
+    }
+    
+    if (this.freelancerEditForm.invalid) {
+      console.error('Form invalid');
+      // Marcar todos os campos como touched para exibir erros
+      Object.keys(this.freelancerEditForm.controls).forEach(key => {
+        this.freelancerEditForm.get(key)?.markAsTouched();
+      });
+      return;
+    }
+    
+    if (!this.freelancer) {
+      console.error('No freelancer data');
+      return;
+    }
 
     this.freelancerEditSubmitting = true;
     const raw = this.freelancerEditForm.value;
@@ -141,13 +189,22 @@ export class ProfileComponent implements OnInit {
       location: String(raw.location ?? '')
     };
 
-    this.api.updateFreelancer(this.freelancer.id, payload).subscribe((updated: any) => {
-      if (updated) {
-        this.freelancer = updated;
+    console.log('Sending payload:', payload);
+
+    this.api.updateFreelancer(this.freelancer.id, payload).subscribe({
+      next: (updated: any) => {
+        console.log('Update successful:', updated);
+        if (updated) {
+          this.freelancer = updated;
+        }
+        this.freelancerEditSubmitting = false;
+        this.editingFreelancer = false;
+        try { this.cd.markForCheck(); } catch (e) {}
+      },
+      error: (err) => {
+        console.error('Update error:', err);
+        this.freelancerEditSubmitting = false;
       }
-      this.freelancerEditSubmitting = false;
-      this.editingFreelancer = false;
-      try { this.cd.markForCheck(); } catch (e) {}
     });
   }
 
@@ -192,25 +249,70 @@ export class ProfileComponent implements OnInit {
   }
 
   saveProfile(): void {
+    console.log('saveProfile called');
+    console.log('Form valid:', this.profileForm.valid);
+    console.log('Form value:', this.profileForm.value);
+    
     if (this.profileForm.invalid) {
+      console.error('Form invalid');
+      Object.keys(this.profileForm.controls).forEach(key => {
+        this.profileForm.get(key)?.markAsTouched();
+      });
       return;
     }
 
     this.isSaving = true;
     const formData = this.profileForm.value;
 
-    // Simular salvamento (em produção, seria uma requisição HTTP)
-    setTimeout(() => {
-      // Atualizar o usuário com o novo apelido
-      if (this.currentUser) {
-        const updatedUser = { ...this.currentUser, nickname: formData.nickname };
-        this.authService.updateCurrentUser(updatedUser);
-        this.currentUser = updatedUser;
-      }
+    // Atualizar o usuário com TODOS os dados do formulário
+    if (this.currentUser) {
+      const updatedUser = { 
+        ...this.currentUser, 
+        nickname: formData.nickname || this.currentUser.nickname,
+        name: formData.name || this.currentUser.name,
+        phone: formData.phone,
+        bio: formData.bio
+      };
+      
+      console.log('Updating user:', updatedUser);
+      this.authService.updateCurrentUser(updatedUser);
+      this.currentUser = updatedUser;
+    }
 
-      this.isSaving = false;
-      this.isEditing = false;
-    }, 500);
+    this.isSaving = false;
+    this.isEditing = false;
+    
+    // Forçar detecção de mudanças
+    this.cd.markForCheck();
+    console.log('Profile saved successfully');
+  }
+
+  /**
+   * Formata o telefone automaticamente no padrão (DD) DDDDD-DDDD
+   */
+  formatPhoneInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    let value = input.value.replace(/\D/g, ''); // Remove tudo que não é dígito
+    
+    // Limita a 11 dígitos (DDD + número)
+    if (value.length > 11) {
+      value = value.substring(0, 11);
+    }
+    
+    // Aplica a máscara
+    if (value.length > 0) {
+      if (value.length <= 2) {
+        value = `(${value}`;
+      } else if (value.length <= 7) {
+        value = `(${value.substring(0, 2)}) ${value.substring(2)}`;
+      } else {
+        value = `(${value.substring(0, 2)}) ${value.substring(2, 7)}-${value.substring(7)}`;
+      }
+    }
+    
+    // Atualiza o valor no input e no form control
+    input.value = value;
+    this.profileForm.patchValue({ phone: value }, { emitEvent: false });
   }
 
   logout(): void {

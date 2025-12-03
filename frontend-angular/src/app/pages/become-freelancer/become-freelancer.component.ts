@@ -38,7 +38,7 @@ export class BecomeFreelancerComponent implements OnInit {
     if (!user) return; // guarded route should catch
 
     // If user's role already marks them as freelancer, show the message (even if profile record not yet exists)
-    if (user.role === 'freelancer') {
+    if (String(user.role || '').toLowerCase() === 'freelancer') {
       this.isExistingFreelancer = true;
     }
 

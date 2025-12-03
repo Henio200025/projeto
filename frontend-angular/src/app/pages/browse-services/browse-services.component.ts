@@ -25,6 +25,23 @@ export class BrowseServicesComponent implements OnInit {
   total = 0;
   selectedCategory?: string | null = null;
 
+  // filtros locais prontos para integração com backend
+  filters: {
+    minPrice?: number | null;
+    maxPrice?: number | null;
+    minRating?: number | null;
+    deliveryTime?: string | null;
+    sortBy?: 'price_asc' | 'price_desc' | 'rating_desc' | 'newest' | null;
+    onlyAvailable?: boolean;
+  } = {
+    minPrice: null,
+    maxPrice: null,
+    minRating: null,
+    deliveryTime: null,
+    sortBy: null,
+    onlyAvailable: false
+  };
+
   constructor(private api: MockApiService, private router: Router, private cd: ChangeDetectorRef) {}
 
   ngOnInit() {
@@ -67,13 +84,38 @@ export class BrowseServicesComponent implements OnInit {
 
   loadServices() {
     this.loading = true;
-    this.api.searchServices(this.searchQuery || '', this.selectedCategory || undefined, this.page, this.perPage).subscribe((res: any) => {
+    const params: any = {
+      q: this.searchQuery || undefined,
+      category: this.selectedCategory || undefined,
+      page: this.page,
+      perPage: this.perPage,
+      minPrice: this.filters.minPrice || undefined,
+      maxPrice: this.filters.maxPrice || undefined,
+      minRating: this.filters.minRating || undefined,
+      deliveryTime: this.filters.deliveryTime || undefined,
+      sortBy: this.filters.sortBy || undefined,
+      onlyAvailable: this.filters.onlyAvailable || undefined
+    };
+
+    this.api.searchServicesWithParams(params).subscribe((res: any) => {
       this.services = res.data || [];
       this.total = res.meta?.total || this.services.length;
       this.loading = false;
       // notify change detection because zoneless scheduler won't pick up this async assignment
       this.cd.markForCheck();
     });
+  }
+
+  applyFilters() {
+    this.page = 1;
+    this.loadServices();
+    this.showFilters = false;
+  }
+
+  clearFilters() {
+    this.filters = { minPrice: null, maxPrice: null, minRating: null, deliveryTime: null, sortBy: null, onlyAvailable: false };
+    this.page = 1;
+    this.loadServices();
   }
 
   changePage(next: boolean) {

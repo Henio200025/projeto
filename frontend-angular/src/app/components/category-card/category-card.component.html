@@ -2,7 +2,7 @@
   <div class="flex items-center gap-3">
     <div class="w-10 h-10 flex items-center justify-center rounded bg-muted text-xl">{{ category.icon }}</div>
     <div class="text-sm">
-      <div class="font-semibold">{{ category.name }}</div>
+      <div class="font-semibold">{{ category.name | categoryLabel }}</div>
       <div class="text-xs text-muted-foreground">{{ category.count }} serviços</div>
     </div>
   </div>

@@ -1,5 +1,5 @@
 <div class="p-4 border rounded-lg bg-white shadow-card hover:shadow-lg transition-shadow flex flex-col h-full">
-  <div class="mb-2 text-xs text-muted-foreground">{{ service.category }}</div>
+  <div class="mb-2 text-xs text-muted-foreground">{{ service.category | categoryLabel }}</div>
   <h3 class="text-lg font-semibold mb-2">{{ service.title }}</h3>
   <p class="text-sm text-muted-foreground flex-1 mb-4">{{ service.description }}</p>
 

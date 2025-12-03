@@ -1,97 +1,108 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule, NgIf, NgForOf } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
-import { MockApiService } from '../../services/mock-api.service';
+import { Component, OnInit, ChangeDetectorRef, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { MockApiService, ServiceItem } from '../../services/mock-api.service';
 import { AuthService } from '../../services/auth.service';
-import { RequestModalComponent } from '../../components/request-modal/request-modal.component';
-import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { ServiceCardComponent } from '../../components/service-card/service-card.component';
+import { RequestServiceModalComponent } from '../../components/request-service-modal/request-service-modal.component';
 
 @Component({
   selector: 'app-service-detail',
   standalone: true,
-  imports: [CommonModule, NgIf, NgForOf, RouterModule, FormsModule, ServiceCardComponent, RequestModalComponent],
+  imports: [CommonModule, RouterModule, RequestServiceModalComponent],
   templateUrl: './service-detail.component.html',
   styleUrls: ['./service-detail.component.css']
 })
 export class ServiceDetailComponent implements OnInit {
-  id: string | null = null;
-  service: any = null;
-  loading = false;
+  service: ServiceItem | null = null;
+  loading = true;
+  isOwner = false;
+  showModal = signal(false);
 
-  // rating form
-  ratingScore = 5;
-  ratingComment = '';
-  submittingRating = false;
-  modalOpen = false;
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private api: MockApiService,
+    private authService: AuthService,
+    private cd: ChangeDetectorRef
+  ) {}
 
-  constructor(private route: ActivatedRoute, private api: MockApiService, private router: Router, private auth: AuthService, private cd: ChangeDetectorRef) {}
-
-  goToRelated(id: any) {
-    // if event carries id, navigate
-    this.router.navigateByUrl(`/service/${id}`);
+  ngOnInit() {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) {
+      this.loadService(id);
+    } else {
+      this.loading = false;
+    }
   }
 
-  ngOnInit(): void {
-    // Listen for route id changes and fetch when available
-    this.route.paramMap.subscribe((pm) => {
-      const id = pm.get('id');
-      if (id !== this.id) {
-        this.id = id;
-        this.fetch();
+  loadService(id: string) {
+    this.api.getServiceById(id).subscribe({
+      next: (service) => {
+        this.service = service;
+        this.loading = false;
+        
+        // Verificar se o usuário é o dono do serviço
+        const currentUser = this.authService.currentUserValue;
+        console.log('Current user:', currentUser);
+        console.log('Service freelancer:', service?.freelancer);
+        
+        if (service && service.freelancer && currentUser) {
+          this.isOwner = String(currentUser.id) === String(service.freelancer.userId);
+          console.log('IsOwner check:', {
+            currentUserId: currentUser.id,
+            freelancerUserId: service.freelancer.userId,
+            isOwner: this.isOwner
+          });
+        } else {
+          this.isOwner = false;
+        }
+        
+        this.cd.markForCheck();
+      },
+      error: (err) => {
+        console.error('Error loading service:', err);
+        this.loading = false;
+        this.cd.markForCheck();
       }
     });
   }
 
-  fetch() {
-    if (!this.id) return;
-    this.loading = true;
-    this.api.getServiceById(this.id).subscribe((s) => {
-      console.debug('[ServiceDetail] fetched service', s, 'for id', this.id);
-      this.service = s;
-      this.loading = false;
-      // application uses zoneless change detection; ensure UI updates
-      try { this.cd.markForCheck(); } catch (e) { /* graceful */ }
-    }, (err) => {
-      console.error('[ServiceDetail] error fetching service', err);
-      this.loading = false;
-      try { this.cd.markForCheck(); } catch (e) {}
-    });
-  }
-
-  submitRating() {
-    if (!this.id || !this.ratingScore) return;
-    if (!this.auth.isAuthenticated()) {
-      this.router.navigateByUrl(`/login?returnUrl=/service/${this.id}`);
+  requestService() {
+    if (!this.authService.currentUserValue) {
+      this.router.navigate(['/login']);
       return;
     }
-    this.submittingRating = true;
-    const user = this.auth.currentUserValue || { id: 'anonymous', name: 'Usuário' };
-    this.api.postRating(this.id, { score: this.ratingScore, comment: this.ratingComment, user: { id: user.id, name: (user as any).nickname || (user as any).email || (user as any).name || 'Usuário' } }).subscribe((r) => {
-      // refresh
-      this.ratingScore = 5;
-      this.ratingComment = '';
-      this.submittingRating = false;
-      this.fetch();
-    });
-  }
-
-  openRequest() {
-    if (!this.auth.isAuthenticated()) {
-      // redirect to login with returnUrl
-      this.router.navigateByUrl(`/login?returnUrl=/service/${this.id}`);
+    
+    if (!this.service) {
+      console.error('Service is null');
+      alert('Erro: Serviço não carregado. Recarregue a página e tente novamente.');
       return;
     }
-    this.modalOpen = true;
+
+    if (!this.service.freelancer) {
+      console.error('Service has no freelancer');
+      alert('Erro: Freelancer não encontrado para este serviço.');
+      return;
+    }
+    
+    console.log('Service data:', this.service);
+    console.log('Freelancer:', this.service.freelancer);
+    console.log('Freelancer ID:', this.service.freelancer.id);
+    
+    this.showModal.set(true);
   }
 
-  onRequestClosed() {
-    this.modalOpen = false;
+  closeModal() {
+    this.showModal.set(false);
   }
 
-  onRequestSubmitted(res: any) {
-    // optionally show a toast; reload requests later
-    this.modalOpen = false;
+  onRequestCreated() {
+    this.showModal.set(false);
+    // Redirecionar para a página de pedidos
+    this.router.navigate(['/my-requests']);
+  }
+
+  goBack() {
+    this.router.navigate(['/browse']);
   }
 }

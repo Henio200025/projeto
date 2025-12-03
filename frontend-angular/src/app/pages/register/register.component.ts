@@ -51,7 +51,6 @@ export class RegisterComponent implements OnInit {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', [Validators.required]],
-      role: ['user', Validators.required],
       agreeTerms: [false, Validators.requiredTrue]
     }, { validators: passwordMatchValidator });
   }
@@ -65,7 +64,8 @@ export class RegisterComponent implements OnInit {
     this.isLoading = true;
     this.error = null;
 
-    const { email, password, role } = this.registerForm.value;
+    const { email, password } = this.registerForm.value;
+    const role = 'USER'; // Sempre registrar como USER
 
     this.authService.register(email, password, role).subscribe({
       next: (response) => {

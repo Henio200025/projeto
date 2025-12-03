@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { CategoryLabelPipe } from '../../pipes/category-label.pipe';
 
 export interface ServiceCardModel {
   id: number | string;
@@ -12,6 +13,7 @@ export interface ServiceCardModel {
 @Component({
   selector: 'app-service-card',
   standalone: true,
+  imports: [CategoryLabelPipe],
   templateUrl: './service-card.component.html',
   styleUrls: ['./service-card.component.css']
 })

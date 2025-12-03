@@ -15,7 +15,7 @@ export const authGuard: CanActivateFn = (route: ActivatedRouteSnapshot, state: R
   // Se a rota requer um papel específico, verificar
   const requiredRole = route.data['role'] as string;
   if (requiredRole && !authService.hasRole(requiredRole as any)) {
-    router.navigate(['/dashboard']); // ou '/unauthorized'
+    router.navigate(['/']); // redireciona para home quando falta permissão
     return false;
   }
 
@@ -36,7 +36,7 @@ export const authGuardV2: CanActivateFn = (route: ActivatedRouteSnapshot, state:
 
   const requiredRole = route.data['role'] as string;
   if (requiredRole && !authService.hasRole(requiredRole as any)) {
-    router.navigate(['/dashboard']);
+    router.navigate(['/']);
     return false;
   }
 
