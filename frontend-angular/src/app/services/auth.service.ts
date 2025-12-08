@@ -10,7 +10,7 @@ import { LoginRequest, LoginResponse, User } from '../models/user.model';
 export class AuthService {
   private readonly API_BASE = '/api';
   // Toggle local mock auth for development/demo. Set to `false` to use real API.
-  private readonly USE_MOCK = true;
+  private readonly USE_MOCK = false;
   private platformId = inject(PLATFORM_ID);
   private currentUserSubject: BehaviorSubject<User | null>;
   public currentUser$: Observable<User | null>;
@@ -66,8 +66,8 @@ export class AuthService {
       } else {
         user = { id: 1, name: 'Usuário Mock', email, role: 'USER' } as User;
       }
-      const mock: LoginResponse = { 
-        token: 'mock-jwt-token', 
+      const mock: LoginResponse = {
+        token: 'mock-jwt-token',
         expiresIn: 3600000 // 1 hora em ms
       };
       this.setLocalStorage('authToken', mock.token);
@@ -75,7 +75,7 @@ export class AuthService {
       this.currentUserSubject.next(user);
       return of(mock).pipe(delay(250));
     }
-    
+
     const loginReq: LoginRequest = { email, password };
     return this.http
       .post<LoginResponse>(`${this.API_BASE}/login`, loginReq)
@@ -83,11 +83,11 @@ export class AuthService {
         map((response) => {
           // Salvar token
           this.setLocalStorage('authToken', response.token);
-          
+
           // Decodificar JWT para obter user info (simplificado)
           // Em produção, usar uma lib como jwt-decode
           const user = this.decodeJwtToken(response.token);
-          
+
           this.setLocalStorage('currentUser', JSON.stringify(user));
           this.currentUserSubject.next(user);
           return response;
@@ -178,29 +178,20 @@ export class AuthService {
 
   /**
    * Registrar novo usuário
-   * Backend Java: POST /api/register
+  * Backend Java: POST /api/users/create
    */
   register(email: string, password: string, role: string = 'USER'): Observable<LoginResponse> {
-    if (this.USE_MOCK) {
-      const user: User = { 
-        id: Math.floor(Math.random() * 10000), 
-        name: email.split('@')[0],
-        email, 
-        role,
-        isFreelancer: role === 'FREELANCER'
-      };
-      const mock: LoginResponse = { 
-        token: 'mock-jwt-token', 
-        expiresIn: 3600000 
-      };
-      this.setLocalStorage('authToken', mock.token);
-      this.setLocalStorage('currentUser', JSON.stringify(user));
-      this.currentUserSubject.next(user);
-      return of(mock).pipe(delay(250));
-    }
-    
+    // Montar o payload conforme esperado pela API Java
+    const payload: any = {
+      name: email.split('@')[0],
+      email,
+      password,
+      isFreelancer: role === 'FREELANCER',
+      addressDTO: [],
+      phoneDTO: []
+    };
     return this.http
-      .post<LoginResponse>(`${this.API_BASE}/register`, { email, password, role })
+      .post<LoginResponse>(`${this.API_BASE}/users/create`, payload)
       .pipe(
         map((response) => {
           this.setLocalStorage('authToken', response.token);
