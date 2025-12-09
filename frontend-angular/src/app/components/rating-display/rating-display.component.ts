@@ -26,26 +26,38 @@ export class RatingDisplayComponent implements OnInit {
   }
 
   loadRatings(): void {
+    if (!this.freelancerId) {
+      console.warn('freelancerId não fornecido');
+      this.loading.set(false);
+      this.ratingsLoaded.emit(0);
+      return;
+    }
+
     this.loading.set(true);
     this.error.set(null);
 
     this.ratingService.getRatingsByFreelancer(this.freelancerId).subscribe({
       next: (data) => {
-        this.ratings.set(data);
+        this.ratings.set(data || []);
         
         // Calcular média
-        if (data.length > 0) {
+        if (data && data.length > 0) {
           const avg = data.reduce((sum, r) => sum + r.score, 0) / data.length;
           this.averageRating.set(Math.round(avg * 10) / 10);
+        } else {
+          this.averageRating.set(0);
         }
         
         // Emitir contagem de avaliações
-        this.ratingsLoaded.emit(data.length);
+        this.ratingsLoaded.emit(data ? data.length : 0);
         this.loading.set(false);
       },
       error: (err) => {
         console.error('Erro ao carregar avaliações:', err);
-        this.error.set('Erro ao carregar avaliações');
+        // Sempre trata como "sem avaliações" em vez de mostrar erro
+        this.ratings.set([]);
+        this.averageRating.set(0);
+        this.error.set(null); // Não mostrar mensagem de erro
         this.ratingsLoaded.emit(0);
         this.loading.set(false);
       }

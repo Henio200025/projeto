@@ -21,7 +21,7 @@
 
       <div class="flex flex-wrap gap-2 justify-center">
         <span class="text-sm text-muted-foreground">Populares:</span>
-        <button *ngFor="let cat of ['Desenvolvimento Web','Design','Redação','Marketing']" class="rounded-full border px-3 py-1" (click)="router.navigateByUrl('/browse?category=' + cat)">{{ cat }}</button>
+        <button *ngFor="let cat of popularCategories" class="rounded-full border px-3 py-1" (click)="browseByCategory(cat.value)">{{ cat.label }}</button>
       </div>
     </div>
   </section>

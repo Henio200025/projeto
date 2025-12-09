@@ -19,6 +19,12 @@ export class HomeComponent implements OnInit {
   searchQuery = '';
   categories: Category[] = [];
   featuredFreelancers: FreelancerListItem[] = [];
+  popularCategories: { label: string; value: string }[] = [
+    { label: 'Tecnologia', value: CategoryType.Technology },
+    { label: 'Serviços Domésticos', value: CategoryType.HomeServices },
+    { label: 'Saúde e Bem-estar', value: CategoryType.HealthAndWellness },
+    { label: 'Educação', value: CategoryType.Education }
+  ];
 
   constructor(public router: Router, private api: MockApiService, private cd: ChangeDetectorRef) {}
 
@@ -53,4 +59,9 @@ export class HomeComponent implements OnInit {
     e.preventDefault();
     this.router.navigateByUrl(`/browse?q=${encodeURIComponent(this.searchQuery)}`);
   }
+
+  browseByCategory(categoryValue: string) {
+    this.router.navigateByUrl(`/browse?category=${encodeURIComponent(categoryValue)}`);
+  }
 }
+

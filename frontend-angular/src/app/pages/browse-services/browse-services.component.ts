@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MockApiService, Category, FreelancerListItem } from '../../services/mock-api.service';
 import { ServiceCardComponent } from '../../components/service-card/service-card.component';
 import { CategoryCardComponent } from '../../components/category-card/category-card.component';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-browse-services',
@@ -32,16 +32,26 @@ export class BrowseServicesComponent implements OnInit {
     minRating: null
   };
 
-  constructor(private api: MockApiService, private router: Router, private cd: ChangeDetectorRef) {}
+  constructor(private api: MockApiService, private router: Router, private activatedRoute: ActivatedRoute, private cd: ChangeDetectorRef) {}
 
   ngOnInit() {
-    // carregar categorias e os primeiros resultados de serviços
-    this.api.getCategories().subscribe((c) => {
-      this.categories = c;
-      // app is configured for zoneless change detection — explicitly mark for check
-      this.cd.markForCheck();
+    // Ler parâmetros de query da URL (category, q)
+    this.activatedRoute.queryParams.subscribe(params => {
+      if (params['category']) {
+        this.selectedCategory = params['category'];
+        console.log('Categoria selecionada de URL:', this.selectedCategory);
+      }
+      if (params['q']) {
+        this.searchQuery = params['q'];
+      }
+      // carregar categorias e os primeiros resultados de serviços
+      this.api.getCategories().subscribe((c) => {
+        this.categories = c;
+        // app is configured for zoneless change detection — explicitly mark for check
+        this.cd.markForCheck();
+      });
+      this.loadServices();
     });
-    this.loadServices();
   }
 
   toggleSidebar() {

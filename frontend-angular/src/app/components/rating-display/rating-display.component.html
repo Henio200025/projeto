@@ -15,15 +15,16 @@
     <p>Carregando avaliações...</p>
   </div>
 
-  <!-- Error -->
+  <!-- Error (apenas se houver erro real, não quando não há avaliações) -->
   <div *ngIf="error() && !loading()" class="error">
     <p>{{ error() }}</p>
   </div>
 
-  <!-- Lista de avaliações -->
-  <div *ngIf="!loading() && !error()" class="ratings-list">
-    <div *ngIf="ratings().length === 0" class="empty-state">
-      <p>Nenhuma avaliação ainda</p>
+  <!-- Lista de avaliações ou estado vazio -->
+  <div *ngIf="!loading()" class="ratings-list">
+    <div *ngIf="ratings().length === 0 && !error()" class="empty-state">
+      <p>Este freelancer ainda não possui avaliações</p>
+      <small class="text-muted">Seja o primeiro a contratar e avaliar!</small>
     </div>
 
     <div *ngFor="let rating of ratings()" class="rating-item">

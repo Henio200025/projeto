@@ -66,8 +66,24 @@
 .empty-state {
   text-align: center;
   padding: 40px 20px;
-  color: #9ca3af;
+  color: #6b7280;
+}
+
+.empty-state p {
+  font-size: 16px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.empty-state small {
+  display: block;
   font-size: 14px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.text-muted {
+  color: #9ca3af;
 }
 
 .ratings-list {

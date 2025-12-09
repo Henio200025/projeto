@@ -78,15 +78,8 @@
         </div>
       </div>
 
-      <!-- Demo credentials -->
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800 space-y-1">
-        <p class="font-semibold">Credenciais de Demo:</p>
-        <p>Usuário: user@example.com / 123456</p>
-        <p>Admin: admin@example.com / 123456</p>
-      </div>
-
       <!-- Link de registro (opcional) -->
-      <p class="text-center text-sm text-muted-foreground mt-6">
+      <p class="text-center text-sm text-muted-foreground">
         Não tem uma conta?
         <a [routerLink]="['/register']" [queryParams]="returnUrl ? { returnUrl: returnUrl } : {}" class="text-primary hover:underline font-medium">
           Cadastre-se
