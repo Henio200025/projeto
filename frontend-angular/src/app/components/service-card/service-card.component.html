@@ -6,7 +6,7 @@
   <div class="pt-4 border-t mt-auto flex items-center justify-between">
     <div class="text-sm text-muted-foreground">
       <div class="font-medium">{{ service.userName }}</div>
-      <div class="text-xs">⭐ {{ service.averageRating }} · {{ service.reviews || 0 }} avaliações</div>
+      <div class="text-xs">⭐ {{ service.averageRating }} · {{ ratingCount() }} {{ ratingCount() === 1 ? 'avaliação' : 'avaliações' }}</div>
     </div>
     <button type="button" (click)="onOpen()" class="px-3 py-2 bg-primary text-white rounded btn-animated service-card-button" aria-label="Ver detalhes do freelancer">Ver perfil</button>
   </div>

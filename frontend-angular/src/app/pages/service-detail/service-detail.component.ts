@@ -1,23 +1,27 @@
-import { Component, OnInit, ChangeDetectorRef, signal } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MockApiService, FreelancerListItem } from '../../services/mock-api.service';
 import { AuthService } from '../../services/auth.service';
 import { RequestServiceModalComponent } from '../../components/request-service-modal/request-service-modal.component';
+import { RatingDisplayComponent } from '../../components/rating-display/rating-display.component';
 import { FreelancerResponseDTO } from '../../models/freelancer.model';
 
 @Component({
   selector: 'app-service-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, RequestServiceModalComponent],
+  imports: [CommonModule, RouterModule, RequestServiceModalComponent, RatingDisplayComponent],
   templateUrl: './service-detail.component.html',
   styleUrls: ['./service-detail.component.css']
 })
 export class ServiceDetailComponent implements OnInit {
   service: FreelancerListItem | null = null;
   freelancerData: FreelancerResponseDTO | null = null;
+  freelancerId: number | null = null;
+  ratingCount = signal<number>(0);
   loading = true;
   showModal = signal(false);
+  @ViewChild(RatingDisplayComponent) ratingDisplayComponent?: RatingDisplayComponent;
 
   constructor(
     private route: ActivatedRoute,
@@ -40,9 +44,10 @@ export class ServiceDetailComponent implements OnInit {
     // Tentar carregar do backend primeiro (dados reais)
     this.api.getFreelancerById(id).subscribe({
       next: (freelancer) => {
-        this.freelancerData = freelancer;
-        // Mapear dados do backend para FreelancerListItem
         if (freelancer) {
+          this.freelancerData = freelancer;
+          this.freelancerId = freelancer.id || null;
+          // Mapear dados do backend para FreelancerListItem
           this.service = {
             id: freelancer.id,
             title: freelancer.title,
@@ -60,7 +65,10 @@ export class ServiceDetailComponent implements OnInit {
         // Fallback para mock
         this.api.getFreelancerCardById(id).subscribe({
           next: (service) => {
-            this.service = service;
+            if (service) {
+              this.service = service;
+              this.freelancerId = Number(service.id) || null;
+            }
             this.loading = false;
             this.cd.markForCheck();
           },
@@ -101,5 +109,14 @@ export class ServiceDetailComponent implements OnInit {
 
   goBack() {
     this.router.navigate(['/browse']);
+  }
+
+  /**
+   * Atualizar contagem de avaliações quando o component de ratings carrega
+   */
+  updateRatingCount() {
+    if (this.ratingDisplayComponent) {
+      this.ratingCount.set(this.ratingDisplayComponent.ratings().length);
+    }
   }
 }

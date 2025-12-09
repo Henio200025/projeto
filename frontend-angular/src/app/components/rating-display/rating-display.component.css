@@ -1,0 +1,165 @@
+.rating-display-container {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+}
+
+.rating-header {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.rating-summary {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.rating-number {
+  font-size: 48px;
+  font-weight: bold;
+  color: #1f2937;
+  min-width: 80px;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 4px;
+  font-size: 24px;
+}
+
+.star-filled {
+  color: #ffc107;
+  text-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+}
+
+.star-empty {
+  color: #d1d5db;
+}
+
+.rating-count {
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+}
+
+.error {
+  background: #fef2f2;
+  border-left: 3px solid #ef4444;
+  padding: 16px;
+  border-radius: 6px;
+  color: #7f1d1d;
+}
+
+.error p {
+  margin: 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.ratings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rating-item {
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.rating-item:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.rating-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.rating-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rating-score span {
+  font-size: 16px;
+}
+
+.score-number {
+  font-weight: 600;
+  color: #1f2937;
+  margin-left: 8px;
+  font-size: 14px;
+}
+
+.rating-date {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.rating-comment {
+  margin-bottom: 12px;
+}
+
+.rating-comment p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.rating-service {
+  color: #9ca3af;
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .rating-display-container {
+    padding: 16px;
+  }
+
+  .rating-summary {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .rating-number {
+    font-size: 36px;
+  }
+
+  .rating-stars {
+    font-size: 18px;
+  }
+
+  .rating-item {
+    padding: 12px;
+  }
+
+  .rating-item-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

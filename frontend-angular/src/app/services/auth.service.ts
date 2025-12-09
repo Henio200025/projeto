@@ -103,12 +103,18 @@ export class AuthService {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       console.log('JWT Payload:', payload); // Debug
+      const roles = Array.isArray(payload.roles) ? payload.roles.map((r: string) => String(r)) : [];
+      const hasFreelancerRole = roles.some((r: string) => r.toUpperCase().includes('FREELANCER'));
+      const normalizedRole = hasFreelancerRole
+        ? 'FREELANCER'
+        : (roles[0]?.toUpperCase().replace('ROLE_', '') || 'USER');
+
       return {
         id: payload.userId || payload.sub || 0,
         name: payload.name || payload.email || 'Usuário',
         email: payload.email || payload.sub || '',
-        role: Array.isArray(payload.roles) && payload.roles.length > 0 ? payload.roles[0] : 'USER',
-        isFreelancer: Array.isArray(payload.roles) && payload.roles.includes('FREELANCER')
+        role: normalizedRole,
+        isFreelancer: hasFreelancerRole
       };
     } catch (e) {
       console.error('Erro ao decodificar JWT:', e);
@@ -189,11 +195,20 @@ export class AuthService {
     
     return this.http.get<any>(`/api/users/${currentUser.id}`).pipe(
       map(response => {
-        // Mapear phoneDTO para phones para compatibilidade
+        // Normalizar role e flag de freelancer mesmo que o backend não envie o campo explicitamente
+        const roleFromApi = String(response.role || '').toUpperCase();
+        const isFreelancer =
+          !!response.isFreelancer ||
+          roleFromApi === 'FREELANCER' ||
+          (Array.isArray(response.roles) && response.roles.map((r: string) => r.toUpperCase()).includes('FREELANCER'));
+
         const user: User = {
           ...response,
+          role: response.role || (isFreelancer ? 'FREELANCER' : 'USER'),
+          isFreelancer,
           phones: response.phoneDTO || response.phones || []
         };
+
         return user;
       }),
       tap(user => {

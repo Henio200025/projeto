@@ -331,4 +331,52 @@
   .actions {
     flex-direction: column;
   }
+
+  .rating-section {
+    flex-direction: column;
+  }
+
+  .btn-rate {
+    width: 100%;
+  }
 }
+
+/* Seção de Avaliação */
+.rating-section {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f0f4ff;
+  border-radius: 0.75rem;
+  border: 1px solid #ddd6fe;
+}
+
+.btn-rate {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #a855f7, #d946ef);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  font-size: 0.95rem;
+}
+
+.btn-rate:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+}
+
+.rating-done {
+  padding: 0.75rem 1.5rem;
+  background: #dcfce7;
+  border-radius: 0.5rem;
+  border-left: 3px solid #22c55e;
+}
+
+.rating-done p {
+  margin: 0;
+  color: #166534;
+  font-weight: 600;
+}
+

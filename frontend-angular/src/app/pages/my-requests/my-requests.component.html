@@ -129,6 +129,19 @@
             Cancelar Pedido
           </button>
         </div>
+
+        <!-- Ação: Avaliar Serviço (apenas para pedidos concluídos) -->
+        <div *ngIf="request.status === StatusEnum.COMPLETED" class="rating-section">
+          <button 
+            *ngIf="!isServiceRated(request.id)"
+            (click)="openRatingModal(request)" 
+            class="btn-rate">
+            ⭐ Avaliar Serviço
+          </button>
+          <div *ngIf="isServiceRated(request.id)" class="rating-done">
+            <p>✓ Serviço avaliado</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -145,3 +158,13 @@
   (closeModal)="closeAcceptModal()"
   (budgetAccepted)="onBudgetAccepted()">
 </app-accept-budget-modal>
+
+<!-- Modal de Avaliação -->
+<app-rating-modal
+  *ngIf="showRatingModal() && selectedRequestForRating()"
+  [serviceId]="getServiceIdAsNumber(selectedRequestForRating()!.id)"
+  [freelancerName]="selectedRequestForRating()!.freelancer.user.name"
+  [serviceName]="selectedRequestForRating()!.description"
+  (closeModal)="closeRatingModal()"
+  (ratingSubmitted)="onRatingSubmitted()">
+</app-rating-modal>

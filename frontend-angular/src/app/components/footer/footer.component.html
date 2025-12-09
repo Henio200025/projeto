@@ -30,12 +30,6 @@
 
     <div class="pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4">
   <p class="text-sm text-muted-foreground">© 2024 UmaMaozinha. Todos os direitos reservados.</p>
-      <div class="flex items-center gap-2">
-        <a *ngFor="let s of socialLinks" [href]="s.href" target="_blank" rel="noopener noreferrer" aria-label="{{ s.label }}" class="w-8 h-8 flex items-center justify-center">
-          <span class="sr-only">{{ s.label }}</span>
-          <svg class="w-4 h-4" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#333"/></svg>
-        </a>
-      </div>
     </div>
   </div>
 </footer>

@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { MockApiService, Category, FreelancerListItem } from '../../services/mock-api.service';
 import { ServiceCardComponent } from '../../components/service-card/service-card.component';
 import { CategoryCardComponent } from '../../components/category-card/category-card.component';
+import { FreelancerResponseDTO } from '../../models/freelancer.model';
+import { CategoryType } from '../../models/enums';
 
 @Component({
   selector: 'app-home',
@@ -21,14 +23,29 @@ export class HomeComponent implements OnInit {
   constructor(public router: Router, private api: MockApiService, private cd: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    // carregar categorias e serviços em destaque via mock api
+    // Categorias continuam vindo do mock até termos endpoint dedicado
     this.api.getCategories().subscribe((c) => {
       this.categories = c;
       this.cd.markForCheck();
     });
-    this.api.getFeaturedFreelancers().subscribe((s) => {
-      this.featuredFreelancers = s;
-      this.cd.markForCheck();
+
+    // Buscar freelancers reais do backend e mapear para o card da home
+    this.api.getFreelancersFromApi().subscribe({
+      next: (data: FreelancerResponseDTO[]) => {
+        this.featuredFreelancers = data.slice(0, 4).map((f) => ({
+          id: f.id,
+          title: f.title,
+          description: f.description,
+          category: (f.category?.name as CategoryType) || CategoryType.Other,
+          averageRating: f.averageRating ?? 0,
+          reviews: 0,
+          userName: f.user?.name || 'Freelancer'
+        }));
+        this.cd.markForCheck();
+      },
+      error: (err) => {
+        console.error('Erro ao carregar freelancers', err);
+      }
     });
   }
 

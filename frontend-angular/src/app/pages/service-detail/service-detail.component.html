@@ -38,7 +38,7 @@
                 <div class="flex items-center gap-1">
                   <span class="text-yellow-500">★</span>
                   <span class="font-medium">{{ service.averageRating || 0 }}</span>
-                  <span>({{ service.reviews || 0 }} avaliações)</span>
+                  <span>({{ ratingCount() }} {{ ratingCount() === 1 ? 'avaliação' : 'avaliações' }})</span>
                 </div>
                 <span>•</span>
                 <span>Por {{ service.userName }}</span>
@@ -79,6 +79,17 @@
                 </li>
               </ul>
             </div>
+
+            <!-- Avaliações do Freelancer -->
+            @if (freelancerId) {
+              <div class="mt-8 pt-8 border-t">
+                <h2 class="text-xl font-bold mb-4">Avaliações</h2>
+                <app-rating-display 
+                  [freelancerId]="freelancerId"
+                  (ratingsLoaded)="ratingCount.set($event)">
+                </app-rating-display>
+              </div>
+            }
           </div>
 
           <!-- Sidebar -->
@@ -91,7 +102,7 @@
                 </div>
                 <div class="flex items-center justify-between text-sm">
                   <span class="text-muted-foreground">Avaliação</span>
-                  <span class="font-medium">★ {{ service.averageRating || 0 }} ({{ service.reviews || 0 }} avaliações)</span>
+                  <span class="font-medium">★ {{ service.averageRating || 0 }} ({{ ratingCount() }} {{ ratingCount() === 1 ? 'avaliação' : 'avaliações' }})</span>
                 </div>
 
                 <button 
@@ -114,7 +125,7 @@
                   <div class="flex items-center gap-1 text-sm">
                     <span class="text-yellow-500">★</span>
                     <span class="font-medium">{{ service.averageRating || 0 }}</span>
-                    <span class="text-muted-foreground">({{ service.reviews || 0 }} avaliações)</span>
+                    <span class="text-muted-foreground">({{ ratingCount() }} {{ ratingCount() === 1 ? 'avaliação' : 'avaliações' }})</span>
                   </div>
                 </div>
               </div>

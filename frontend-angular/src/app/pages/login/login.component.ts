@@ -62,8 +62,14 @@ export class LoginComponent implements OnInit {
         const target = this.returnUrl || '/';
         // small success message when staying on page
         this.success = 'Login bem sucedido — redirecionando...';
-        // navigate
-        this.router.navigateByUrl(target);
+        // Sync user profile to ensure role/isFreelancer are up-to-date before rendering navbar
+        this.authService.refreshCurrentUser().subscribe({
+          next: () => this.router.navigateByUrl(target),
+          error: (refreshErr) => {
+            console.warn('Falha ao atualizar usuário após login:', refreshErr);
+            this.router.navigateByUrl(target);
+          }
+        });
       },
       error: (err) => {
         this.isLoading = false;

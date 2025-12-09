@@ -1,0 +1,47 @@
+<div class="rating-display-container">
+  <!-- Header com média de avaliações -->
+  <div class="rating-header">
+    <div class="rating-summary">
+      <div class="rating-number">{{ averageRating() }}</div>
+      <div class="rating-stars">
+        <span *ngFor="let i of [1, 2, 3, 4, 5]" [class]="isStarFilled(i, averageRating()) ? 'star-filled' : 'star-empty'">★</span>
+      </div>
+      <div class="rating-count">{{ ratings().length }} avaliação<span *ngIf="ratings().length !== 1">ções</span></div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading()" class="loading">
+    <p>Carregando avaliações...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error() && !loading()" class="error">
+    <p>{{ error() }}</p>
+  </div>
+
+  <!-- Lista de avaliações -->
+  <div *ngIf="!loading() && !error()" class="ratings-list">
+    <div *ngIf="ratings().length === 0" class="empty-state">
+      <p>Nenhuma avaliação ainda</p>
+    </div>
+
+    <div *ngFor="let rating of ratings()" class="rating-item">
+      <div class="rating-item-header">
+        <div class="rating-score">
+          <span *ngFor="let i of [1, 2, 3, 4, 5]" [class]="isStarFilled(i, rating.score) ? 'star-filled' : 'star-empty'">★</span>
+          <span class="score-number">{{ rating.score }}</span>
+        </div>
+        <div class="rating-date">{{ formatDate(rating.createdAt) }}</div>
+      </div>
+
+      <div *ngIf="rating.comment" class="rating-comment">
+        <p>{{ rating.comment }}</p>
+      </div>
+
+      <div class="rating-service" *ngIf="rating.servicesDTO">
+        <small>Sobre: {{ rating.servicesDTO.description | slice:0:60 }}...</small>
+      </div>
+    </div>
+  </div>
+</div>
