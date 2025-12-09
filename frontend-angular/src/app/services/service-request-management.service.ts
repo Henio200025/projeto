@@ -14,7 +14,6 @@ import { Observable, of, throwError } from 'rxjs';
 import { map, switchMap, tap, catchError, retry, delay } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { MockApiService } from './mock-api.service';
-import { NotificationService } from './notification.service';
 import {
   CreateServiceRequestDTO,
   SendBudgetDTO,
@@ -34,7 +33,6 @@ export class ServiceRequestManagementService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   private mockApi = inject(MockApiService);
-  private notificationService = inject(NotificationService);
 
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();
