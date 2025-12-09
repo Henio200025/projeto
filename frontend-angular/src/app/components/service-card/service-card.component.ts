@@ -1,19 +1,13 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CategoryLabelPipe } from '../../pipes/category-label.pipe';
+import { CommonModule } from '@angular/common';
+import { FreelancerListItem } from '../../services/mock-api.service';
 
-export interface ServiceCardModel {
-  id: number | string;
-  title: string;
-  description?: string;
-  price?: number;
-  category?: string;
-  freelancer?: { name?: string; rating?: number; reviews?: number };
-}
+export type ServiceCardModel = FreelancerListItem;
 
 @Component({
   selector: 'app-service-card',
   standalone: true,
-  imports: [CategoryLabelPipe],
+  imports: [CommonModule],
   templateUrl: './service-card.component.html',
   styleUrls: ['./service-card.component.css']
 })

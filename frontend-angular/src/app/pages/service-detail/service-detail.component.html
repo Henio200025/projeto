@@ -37,16 +37,12 @@
               <div class="flex items-center gap-4 text-sm text-muted-foreground">
                 <div class="flex items-center gap-1">
                   <span class="text-yellow-500">★</span>
-                  <span class="font-medium">{{ service.freelancer?.rating || 0 }}</span>
-                  <span>({{ service.freelancer?.reviews || 0 }} avaliações)</span>
+                  <span class="font-medium">{{ service.averageRating || 0 }}</span>
+                  <span>({{ service.reviews || 0 }} avaliações)</span>
                 </div>
                 <span>•</span>
-                <span>Por {{ service.freelancer?.name || 'Freelancer' }}</span>
+                <span>Por {{ service.userName }}</span>
               </div>
-            </div>
-            <div class="text-right">
-              <div class="text-sm text-muted-foreground mb-1">A partir de</div>
-              <div class="text-3xl font-bold text-purple-600">R$ {{ service.price }}</div>
             </div>
           </div>
         </div>
@@ -56,7 +52,7 @@
           <!-- Main Content -->
           <div class="md:col-span-2 space-y-6">
             <div>
-              <h2 class="text-xl font-bold mb-3">Descrição do Serviço</h2>
+              <h2 class="text-xl font-bold mb-3">Sobre este freelancer</h2>
               <p class="text-muted-foreground leading-relaxed">{{ service.description }}</p>
             </div>
 
@@ -90,47 +86,35 @@
             <div class="border rounded-lg p-6 sticky top-6">
               <div class="space-y-4">
                 <div class="flex items-center justify-between text-sm">
-                  <span class="text-muted-foreground">Prazo de entrega</span>
-                  <span class="font-medium">{{ service.deliveryTime || '7 dias' }}</span>
-                </div>
-                <div class="flex items-center justify-between text-sm">
                   <span class="text-muted-foreground">Categoria</span>
                   <span class="font-medium">{{ service.category }}</span>
                 </div>
                 <div class="flex items-center justify-between text-sm">
-                  <span class="text-muted-foreground">Status</span>
-                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Disponível
-                  </span>
+                  <span class="text-muted-foreground">Avaliação</span>
+                  <span class="font-medium">★ {{ service.averageRating || 0 }} ({{ service.reviews || 0 }} avaliações)</span>
                 </div>
 
-                @if (!isOwner) {
-                  <button 
-                    (click)="requestService()"
-                    class="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
-                    Solicitar Orçamento
-                  </button>
-                } @else {
-                  <div class="text-center p-4 bg-gray-100 rounded-lg">
-                    <p class="text-sm text-gray-600">Este é seu serviço</p>
-                  </div>
-                }
+                <button 
+                  (click)="requestService()"
+                  class="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                  Solicitar Orçamento
+                </button>
 
                 <div class="pt-4 border-t">
                   <h3 class="font-bold mb-3">Sobre o Freelancer</h3>
                   <div class="flex items-center gap-3 mb-3">
                     <div class="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
-                      {{ (service.freelancer?.name || 'F').charAt(0) }}
+                      {{ (service.userName || 'F').charAt(0) }}
                     </div>
                     <div>
-                      <div class="font-medium">{{ service.freelancer?.name || 'Freelancer' }}</div>
+                      <div class="font-medium">{{ service.userName || 'Freelancer' }}</div>
                       <div class="text-sm text-muted-foreground">Freelancer</div>
                     </div>
                   </div>
                   <div class="flex items-center gap-1 text-sm">
                     <span class="text-yellow-500">★</span>
-                    <span class="font-medium">{{ service.freelancer?.rating || 0 }}</span>
-                    <span class="text-muted-foreground">({{ service.freelancer?.reviews || 0 }} avaliações)</span>
+                    <span class="font-medium">{{ service.averageRating || 0 }}</span>
+                    <span class="text-muted-foreground">({{ service.reviews || 0 }} avaliações)</span>
                   </div>
                 </div>
               </div>
@@ -156,11 +140,11 @@
   }
 
   <!-- Modal de Solicitação de Orçamento -->
-  @if (showModal() && service && service.freelancer) {
+  @if (showModal() && service) {
     <app-request-service-modal
       [serviceId]="service.id"
-      [freelancerId]="service.freelancer.id"
-      [freelancerName]="service.freelancer.name || 'Freelancer'"
+      [freelancerId]="service.id"
+      [freelancerName]="service.userName || 'Freelancer'"
       [serviceName]="service.title"
       (closeModal)="closeModal()"
       (requestCreated)="onRequestCreated()">

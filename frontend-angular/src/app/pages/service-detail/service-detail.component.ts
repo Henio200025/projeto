@@ -1,9 +1,10 @@
 import { Component, OnInit, ChangeDetectorRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { MockApiService, ServiceItem } from '../../services/mock-api.service';
+import { MockApiService, FreelancerListItem } from '../../services/mock-api.service';
 import { AuthService } from '../../services/auth.service';
 import { RequestServiceModalComponent } from '../../components/request-service-modal/request-service-modal.component';
+import { FreelancerResponseDTO } from '../../models/freelancer.model';
 
 @Component({
   selector: 'app-service-detail',
@@ -13,9 +14,9 @@ import { RequestServiceModalComponent } from '../../components/request-service-m
   styleUrls: ['./service-detail.component.css']
 })
 export class ServiceDetailComponent implements OnInit {
-  service: ServiceItem | null = null;
+  service: FreelancerListItem | null = null;
+  freelancerData: FreelancerResponseDTO | null = null;
   loading = true;
-  isOwner = false;
   showModal = signal(false);
 
   constructor(
@@ -36,33 +37,39 @@ export class ServiceDetailComponent implements OnInit {
   }
 
   loadService(id: string) {
-    this.api.getServiceById(id).subscribe({
-      next: (service) => {
-        this.service = service;
-        this.loading = false;
-        
-        // Verificar se o usuário é o dono do serviço
-        const currentUser = this.authService.currentUserValue;
-        console.log('Current user:', currentUser);
-        console.log('Service freelancer:', service?.freelancer);
-        
-        if (service && service.freelancer && currentUser) {
-          this.isOwner = String(currentUser.id) === String(service.freelancer.userId);
-          console.log('IsOwner check:', {
-            currentUserId: currentUser.id,
-            freelancerUserId: service.freelancer.userId,
-            isOwner: this.isOwner
-          });
-        } else {
-          this.isOwner = false;
+    // Tentar carregar do backend primeiro (dados reais)
+    this.api.getFreelancerById(id).subscribe({
+      next: (freelancer) => {
+        this.freelancerData = freelancer;
+        // Mapear dados do backend para FreelancerListItem
+        if (freelancer) {
+          this.service = {
+            id: freelancer.id,
+            title: freelancer.title,
+            description: freelancer.description,
+            category: freelancer.category?.name as any,
+            averageRating: freelancer.averageRating ?? 0,
+            userName: freelancer.user?.name || 'Freelancer'
+          };
         }
-        
+        this.loading = false;
         this.cd.markForCheck();
       },
       error: (err) => {
-        console.error('Error loading service:', err);
-        this.loading = false;
-        this.cd.markForCheck();
+        console.error('Erro ao carregar freelancer do backend, tentando mock:', err);
+        // Fallback para mock
+        this.api.getFreelancerCardById(id).subscribe({
+          next: (service) => {
+            this.service = service;
+            this.loading = false;
+            this.cd.markForCheck();
+          },
+          error: () => {
+            console.error('Erro ao carregar freelancer');
+            this.loading = false;
+            this.cd.markForCheck();
+          }
+        });
       }
     });
   }
@@ -79,16 +86,6 @@ export class ServiceDetailComponent implements OnInit {
       return;
     }
 
-    if (!this.service.freelancer) {
-      console.error('Service has no freelancer');
-      alert('Erro: Freelancer não encontrado para este serviço.');
-      return;
-    }
-    
-    console.log('Service data:', this.service);
-    console.log('Freelancer:', this.service.freelancer);
-    console.log('Freelancer ID:', this.service.freelancer.id);
-    
     this.showModal.set(true);
   }
 

@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ServiceRequestManagementService } from '../../services/service-request-management.service';
+import { BudgetProposalModalComponent } from '../../components/budget-proposal-modal/budget-proposal-modal.component';
 import {
   ServiceRequestResponseDTO,
   ServiceRequestStatus,
@@ -12,7 +13,7 @@ import {
 @Component({
   selector: 'app-my-jobs',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BudgetProposalModalComponent],
   templateUrl: './my-jobs.component.html',
   styleUrls: ['./my-jobs.component.css']
 })
@@ -26,13 +27,9 @@ export class MyJobsComponent implements OnInit {
   // Para filtros
   selectedStatus = signal<ServiceRequestStatus | 'all'>('all');
   
-  // Para enviar orçamento
-  sendingBudget = signal<string | number | null>(null);
-  budgetForm = signal<{price: number, estimatedDays: number, notes: string}>({
-    price: 0,
-    estimatedDays: 0,
-    notes: ''
-  });
+  // Para enviar orçamento via modal
+  showBudgetModal = signal(false);
+  selectedJobForBudget = signal<ServiceRequestResponseDTO | null>(null);
   
   // Enums expostos para o template
   readonly StatusEnum = ServiceRequestStatus;
@@ -40,7 +37,7 @@ export class MyJobsComponent implements OnInit {
 
   // Computed lists to avoid using inline lambdas in templates
   get pendingBudgetJobs(): ServiceRequestResponseDTO[] {
-    return this.jobs().filter(j => j.status === ServiceRequestStatus.PENDING_BUDGET);
+    return this.jobs().filter(j => j.status === ServiceRequestStatus.PENDING);
   }
 
   get pendingBudgetCount(): number {
@@ -48,7 +45,7 @@ export class MyJobsComponent implements OnInit {
   }
 
   get acceptedJobs(): ServiceRequestResponseDTO[] {
-    return this.jobs().filter(j => j.status === ServiceRequestStatus.ACCEPTED || j.status === ServiceRequestStatus.IN_PROGRESS);
+    return this.jobs().filter(j => j.status === ServiceRequestStatus.CONFIRMED || j.status === ServiceRequestStatus.IN_PROGRESS);
   }
 
   // Lista filtrada para o template, conforme selectedStatus
@@ -92,56 +89,19 @@ export class MyJobsComponent implements OnInit {
     this.loadJobs();
   }
 
-  openBudgetForm(jobId: string | number, currentBudget?: SendBudgetDTO) {
-    this.sendingBudget.set(jobId);
-    
-    if (currentBudget) {
-      // Editando orçamento existente
-      this.budgetForm.set({
-        price: currentBudget.price,
-        estimatedDays: currentBudget.estimatedDays || 0,
-        notes: currentBudget.notes || ''
-      });
-    } else {
-      // Novo orçamento
-      this.budgetForm.set({ price: 0, estimatedDays: 0, notes: '' });
-    }
+  openBudgetModal(job: ServiceRequestResponseDTO) {
+    this.selectedJobForBudget.set(job);
+    this.showBudgetModal.set(true);
   }
 
-  closeBudgetForm() {
-    this.sendingBudget.set(null);
-    this.budgetForm.set({ price: 0, estimatedDays: 0, notes: '' });
+  closeBudgetModal() {
+    this.showBudgetModal.set(false);
+    this.selectedJobForBudget.set(null);
   }
 
-  submitBudget(jobId: string | number, isUpdate: boolean) {
-    const form = this.budgetForm();
-    
-    if (form.price <= 0) {
-      alert('Informe um valor válido.');
-      return;
-    }
-
-    const budget: SendBudgetDTO = {
-      price: form.price,
-      estimatedDays: form.estimatedDays > 0 ? form.estimatedDays : undefined,
-      notes: form.notes || undefined
-    };
-
-    const request = isUpdate 
-      ? this.requestService.updateBudget(jobId, budget)
-      : this.requestService.sendBudget(jobId, budget);
-
-    request.subscribe({
-      next: () => {
-        alert(isUpdate ? 'Orçamento atualizado!' : 'Orçamento enviado!');
-        this.closeBudgetForm();
-        this.loadJobs();
-      },
-      error: (err) => {
-        alert('Erro ao enviar orçamento. Tente novamente.');
-        console.error('Erro:', err);
-      }
-    });
+  onProposalSent() {
+    this.closeBudgetModal();
+    this.loadJobs();
   }
 
   startWork(jobId: string | number) {
@@ -209,10 +169,9 @@ export class MyJobsComponent implements OnInit {
 
   getStatusClass(status: ServiceRequestStatus): string {
     const classes: Record<ServiceRequestStatus, string> = {
-      [ServiceRequestStatus.PENDING_BUDGET]: 'status-pending',
-      [ServiceRequestStatus.BUDGETED]: 'status-budgeted',
-      [ServiceRequestStatus.ACCEPTED]: 'status-accepted',
-      [ServiceRequestStatus.REJECTED]: 'status-rejected',
+      [ServiceRequestStatus.PENDING]: 'status-pending',
+      [ServiceRequestStatus.WAITING_USER]: 'status-budgeted',
+      [ServiceRequestStatus.CONFIRMED]: 'status-accepted',
       [ServiceRequestStatus.IN_PROGRESS]: 'status-progress',
       [ServiceRequestStatus.COMPLETED]: 'status-completed',
       [ServiceRequestStatus.CANCELLED]: 'status-cancelled'

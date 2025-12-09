@@ -3,29 +3,25 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { User } from '../../models/user.model';
+import { User, AddressDTO, PhoneDTO } from '../../models/user.model';
 import { MockApiService } from '../../services/mock-api.service';
+import { ContactInfoService } from '../../services/contact-info.service';
 import { ChangeDetectorRef } from '@angular/core';
-import { CategoryLabelPipe } from '../../pipes/category-label.pipe';
+import { FreelancerResponseDTO } from '../../models/freelancer.model';
+import { CategoryType } from '../../models/enums';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, CategoryLabelPipe],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.css']
 })
 export class ProfileComponent implements OnInit {
   profileForm!: FormGroup;
   currentUser: User | null = null;
-  freelancer: any = null;
+  freelancer: FreelancerResponseDTO | null = null;
   freelancerLoading = false;
-  services: any[] = [];
-  servicesLoading = false;
-  // create service UI
-  showCreateServiceForm = false;
-  createServiceForm!: FormGroup;
-  createServiceSubmitting = false;
   // freelancer edit
   editingFreelancer = false;
   freelancerEditForm!: FormGroup;
@@ -33,26 +29,115 @@ export class ProfileComponent implements OnInit {
   isEditing = false;
   isSaving = false;
 
+  // Contact Info Management
+  addresses: AddressDTO[] = [];
+  phones: PhoneDTO[] = [];
+  loadingAddresses = false;
+  loadingPhones = false;
+  showAddressForm = false;
+  showPhoneForm = false;
+  addressForm!: FormGroup;
+  phoneForm!: FormGroup;
+  editingAddressId: number | null = null;
+  editingPhoneId: number | null = null;
+  savingContactInfo = false;
+
+  categoryOptions = [
+    { value: 'Technology', label: 'Tecnologia' },
+    { value: 'HomeServices', label: 'Serviços Domésticos' },
+    { value: 'HealthAndWellness', label: 'Saúde e Bem-estar' },
+    { value: 'Education', label: 'Educação' },
+    { value: 'CreativeArts', label: 'Artes Criativas' },
+    { value: 'BusinessAndFinance', label: 'Negócios e Finanças' },
+    { value: 'PersonalCare', label: 'Cuidados Pessoais' },
+    { value: 'EventsAndEntertainment', label: 'Eventos e Entretenimento' },
+    { value: 'WritingAndTranslation', label: 'Escrita e Tradução' },
+    { value: 'MarketingAndSales', label: 'Marketing e Vendas' },
+    { value: 'LegalAndConsulting', label: 'Jurídico e Consultoria' },
+    { value: 'Other', label: 'Outro' }
+  ];
+
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
     private api: MockApiService,
+    private contactInfoService: ContactInfoService,
     private cd: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
-    this.currentUser = this.authService.currentUserValue;
-    
-    if (!this.currentUser) {
-      this.router.navigate(['/login']);
-      return;
-    }
+    // Buscar dados atualizados do usuário do backend
+    this.authService.refreshCurrentUser().subscribe({
+      next: (updatedUser) => {
+        console.log('User refreshed from backend:', updatedUser);
+        this.currentUser = updatedUser;
+        this.initializeForm();
+        
+        // Load addresses and phones AFTER user is set
+        if (this.currentUser?.id) {
+          this.loadAddresses();
+          this.loadPhones();
+        }
 
-    // Inicializar formulário DEPOIS de ter o currentUser
-    this.initializeForm();
-    
-    console.log('Profile loaded with user:', this.currentUser);
+        // if the logged-in user is a freelancer, fetch their freelancer profile
+        console.log('Current user:', this.currentUser);
+        console.log('Is freelancer?', this.currentUser.isFreelancer);
+        
+        if (this.currentUser.isFreelancer) {
+          this.freelancerLoading = true;
+          this.api.getFreelancerByUserId(this.currentUser.id).subscribe({
+            next: (f) => {
+              console.log('Freelancer data received:', f);
+              // Se for um array, pega o primeiro elemento
+              let profile = Array.isArray(f) ? f[0] : f;
+              this.freelancer = profile || null;
+              this.freelancerLoading = false;
+              this.cd.detectChanges();
+            },
+            error: (err) => {
+              console.error('Error loading freelancer profile:', err);
+              this.freelancerLoading = false;
+              this.cd.detectChanges();
+            }
+          });
+        }
+      },
+      error: (err) => {
+        console.error('Error refreshing user:', err);
+        // Se falhar, usa o usuário em cache
+        this.currentUser = this.authService.currentUserValue;
+        
+        if (!this.currentUser) {
+          this.router.navigate(['/login']);
+          return;
+        }
+
+        this.initializeForm();
+        
+        if (this.currentUser?.id) {
+          this.loadAddresses();
+          this.loadPhones();
+        }
+
+        if (this.currentUser?.isFreelancer) {
+          this.freelancerLoading = true;
+          this.api.getFreelancerByUserId(this.currentUser.id).subscribe({
+            next: (f) => {
+              let profile = Array.isArray(f) ? f[0] : f;
+              this.freelancer = profile || null;
+              this.freelancerLoading = false;
+              this.cd.detectChanges();
+            },
+            error: (err) => {
+              console.error('Error loading freelancer profile:', err);
+              this.freelancerLoading = false;
+              this.cd.detectChanges();
+            }
+          });
+        }
+      }
+    });
 
     // Subscrever para mudanças no usuário atual
     this.authService.currentUser$.subscribe(user => {
@@ -62,18 +147,11 @@ export class ProfileComponent implements OnInit {
         this.reloadFormData();
       }
     });
+  }
 
-    // if the logged-in user is a freelancer, fetch their freelancer profile
-    if (String(this.currentUser.role || '').toLowerCase() === 'freelancer') {
-      this.freelancerLoading = true;
-      this.api.getFreelancerByUserId(this.currentUser.id).subscribe((f) => {
-        this.freelancer = f;
-        this.freelancerLoading = false;
-        this.cd.markForCheck();
-        // after we know freelancer identity, try load services owned by this user
-        this.fetchServicesForFreelancer();
-      });
-    }
+  getCategoryLabel(categoryValue: string | CategoryType): string {
+    const found = this.categoryOptions.find(c => c.value === categoryValue);
+    return found ? found.label : String(categoryValue);
   }
 
   /**
@@ -82,67 +160,257 @@ export class ProfileComponent implements OnInit {
   private reloadFormData(): void {
     if (this.profileForm && this.currentUser) {
       this.profileForm.patchValue({
-        nickname: this.currentUser.nickname || '',
-        phone: this.currentUser.phone || '',
-        name: this.currentUser.name || '',
-        bio: this.currentUser.bio || ''
+        name: this.currentUser.name || ''
       });
-      this.cd.markForCheck();
+      this.cd.detectChanges();
     }
   }
 
-  private fetchServicesForFreelancer(): void {
-    this.servicesLoading = true;
-    const fid = this.freelancer?.id || this.currentUser?.id;
-    if (fid) {
-      this.api.getServicesByFreelancerId(fid).subscribe((list: any) => {
-        this.services = list || [];
-        this.servicesLoading = false;
-        try { this.cd.markForCheck(); } catch (e) {}
+  // ============ ADDRESS & PHONE MANAGEMENT ============
+
+  loadAddresses(): void {
+    if (!this.currentUser?.id) {
+      console.warn('No user ID available for loading addresses');
+      return;
+    }
+    this.loadingAddresses = true;
+    console.log('Loading addresses for user:', this.currentUser.id);
+    this.contactInfoService.getAddressesByUserId(this.currentUser.id).subscribe({
+      next: (addresses) => {
+        console.log('Addresses loaded:', addresses);
+        this.addresses = addresses || [];
+        this.loadingAddresses = false;
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erro ao carregar endereços:', err);
+        this.addresses = [];
+        this.loadingAddresses = false;
+        this.cd.detectChanges();
+      }
+    });
+  }
+
+  loadPhones(): void {
+    if (!this.currentUser?.id) {
+      console.warn('No user ID available for loading phones');
+      return;
+    }
+    this.loadingPhones = true;
+    console.log('Loading phones for user:', this.currentUser.id);
+    this.contactInfoService.getPhonesByUserId(this.currentUser.id).subscribe({
+      next: (phones) => {
+        console.log('Phones loaded:', phones);
+        this.phones = phones || [];
+        this.loadingPhones = false;
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erro ao carregar telefones:', err);
+        this.phones = [];
+        this.loadingPhones = false;
+        this.cd.detectChanges();
+      }
+    });
+  }
+
+  toggleAddressForm(): void {
+    if (!this.isEditing) {
+      this.isEditing = true;
+    }
+    this.showAddressForm = !this.showAddressForm;
+    if (this.showAddressForm) {
+      this.initAddressForm();
+    }
+  }
+
+  togglePhoneForm(): void {
+    if (!this.isEditing) {
+      this.isEditing = true;
+    }
+    this.showPhoneForm = !this.showPhoneForm;
+    if (this.showPhoneForm) {
+      this.initPhoneForm();
+    }
+  }
+
+  private initAddressForm(): void {
+    this.addressForm = this.fb.group({
+      street: ['', Validators.required],
+      city: ['', Validators.required],
+      state: ['', Validators.required],
+      zipCode: ['', Validators.required],
+      country: ['', Validators.required]
+    });
+  }
+
+  private initPhoneForm(): void {
+    this.phoneForm = this.fb.group({
+      number: ['', Validators.required],
+      description: [''],
+      isWhatsApp: [false]
+    });
+  }
+
+  saveAddress(): void {
+    if (!this.addressForm.valid || !this.currentUser?.id) return;
+
+    this.savingContactInfo = true;
+    const addressDTO: AddressDTO = this.addressForm.value;
+
+    if (this.editingAddressId) {
+      this.contactInfoService.updateAddress(this.editingAddressId, addressDTO).subscribe({
+        next: (updated) => {
+          const idx = this.addresses.findIndex(a => a.id === this.editingAddressId);
+          if (idx >= 0) {
+            this.addresses[idx] = updated;
+          }
+          this.resetAddressForm();
+          this.savingContactInfo = false;
+          this.authService.refreshCurrentUser().subscribe();
+          this.cd.detectChanges();
+        },
+        error: (err) => {
+          console.error('Erro ao atualizar endereço:', err);
+          this.savingContactInfo = false;
+        }
       });
     } else {
-      // fallback: search all
-      this.api.searchServices('', undefined, 1, 50).subscribe(({ data }: any) => {
-        const uid = this.currentUser?.id;
-        this.services = (data || []).filter((s: any) => {
-          const fid = s?.freelancer?.id;
-          return fid === uid || (this.freelancer && fid === this.freelancer.userId) || (this.freelancer && fid === this.freelancer.id);
-        });
-        this.servicesLoading = false;
-        try { this.cd.markForCheck(); } catch (e) {}
+      this.contactInfoService.addAddress(this.currentUser.id, addressDTO).subscribe({
+        next: (created) => {
+          this.addresses.unshift(created);
+          this.resetAddressForm();
+          this.savingContactInfo = false;
+          this.authService.refreshCurrentUser().subscribe();
+          this.cd.detectChanges();
+        },
+        error: (err) => {
+          console.error('Erro ao criar endereço:', err);
+          this.savingContactInfo = false;
+        }
       });
+    }
+  }
+
+  savePhone(): void {
+    if (!this.phoneForm.valid || !this.currentUser?.id) return;
+
+    this.savingContactInfo = true;
+    const phoneDTO: PhoneDTO = this.phoneForm.value;
+
+    if (this.editingPhoneId) {
+      this.contactInfoService.updatePhone(this.editingPhoneId, phoneDTO).subscribe({
+        next: (updated) => {
+          const idx = this.phones.findIndex(p => p.id === this.editingPhoneId);
+          if (idx >= 0) {
+            this.phones[idx] = updated;
+          }
+          this.resetPhoneForm();
+          this.savingContactInfo = false;
+          // Atualizar usuário no AuthService
+          this.authService.refreshCurrentUser().subscribe();
+          this.cd.detectChanges();
+        },
+        error: (err) => {
+          console.error('Erro ao atualizar telefone:', err);
+          this.savingContactInfo = false;
+        }
+      });
+    } else {
+      this.contactInfoService.addPhone(this.currentUser.id, phoneDTO).subscribe({
+        next: (created) => {
+          this.phones.unshift(created);
+          this.resetPhoneForm();
+          this.savingContactInfo = false;
+          // Atualizar usuário no AuthService para que o novo telefone apareça em outras telas
+          this.authService.refreshCurrentUser().subscribe();
+          this.cd.detectChanges();
+        },
+        error: (err) => {
+          console.error('Erro ao criar telefone:', err);
+          this.savingContactInfo = false;
+        }
+      });
+    }
+  }
+
+  editAddress(address: AddressDTO): void {
+    this.editingAddressId = address.id || null;
+    this.addressForm = this.fb.group({
+      street: [address.street, Validators.required],
+      city: [address.city, Validators.required],
+      state: [address.state, Validators.required],
+      zipCode: [address.zipCode, Validators.required],
+      country: [address.country, Validators.required]
+    });
+    this.showAddressForm = true;
+  }
+
+  editPhone(phone: PhoneDTO): void {
+    this.editingPhoneId = phone.id || null;
+    this.phoneForm = this.fb.group({
+      number: [phone.number, Validators.required],
+      description: [phone.description || ''],
+      isWhatsApp: [phone.isWhatsApp || false]
+    });
+    this.showPhoneForm = true;
+  }
+
+  deleteAddress(addressId: number | undefined): void {
+    if (!addressId || !confirm('Tem certeza que deseja deletar este endereço?')) return;
+
+    this.contactInfoService.deleteAddress(addressId).subscribe({
+      next: () => {
+        this.addresses = this.addresses.filter(a => a.id !== addressId);
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erro ao deletar endereço:', err);
+      }
+    });
+  }
+
+  deletePhone(phoneId: number | undefined): void {
+    if (!phoneId || !confirm('Tem certeza que deseja deletar este telefone?')) return;
+
+    this.contactInfoService.deletePhone(phoneId).subscribe({
+      next: () => {
+        this.phones = this.phones.filter(p => p.id !== phoneId);
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erro ao deletar telefone:', err);
+      }
+    });
+  }
+
+  private resetAddressForm(): void {
+    this.showAddressForm = false;
+    this.editingAddressId = null;
+    if (this.addressForm) {
+      this.addressForm.reset();
+    }
+  }
+
+  private resetPhoneForm(): void {
+    this.showPhoneForm = false;
+    this.editingPhoneId = null;
+    if (this.phoneForm) {
+      this.phoneForm.reset();
     }
   }
 
   initializeForm(): void {
     this.profileForm = this.fb.group({
-      nickname: [this.currentUser?.nickname || '', [Validators.minLength(3)]],
-      phone: [this.currentUser?.phone || ''],
-      name: [this.currentUser?.name || '', [Validators.minLength(3)]],
-      bio: [this.currentUser?.bio || '', [Validators.maxLength(500)]]
-    });
-  }
-
-  // create service form
-  private initCreateServiceForm(): void {
-    this.createServiceForm = this.fb.group({
-      title: ['', [Validators.required, Validators.minLength(3)]],
-      description: ['', [Validators.required, Validators.minLength(10)]],
-      price: [null, [Validators.min(0)]],
-      deliveryTime: [''],
-      category: ['']
+      name: [this.currentUser?.name || '', [Validators.minLength(3)]]
     });
   }
 
   private initFreelancerEditForm(): void {
     this.freelancerEditForm = this.fb.group({
-      title: [this.freelancer?.title || '', [Validators.required, Validators.minLength(3)]],
-      bio: [this.freelancer?.bio || '', [Validators.required, Validators.minLength(10)]],
-      skills: [((this.freelancer?.skills || [])).join(', ') || '', Validators.required],
-      hourlyRate: [this.freelancer?.hourlyRate || null, [Validators.min(0)]],
-      categories: [((this.freelancer?.categories || [])).join(', ') || ''],
-      portfolioUrl: [this.freelancer?.portfolioUrl || ''],
-      location: [this.freelancer?.location || '']
+      title: [this.freelancer?.title || '', [Validators.required, Validators.minLength(5), Validators.maxLength(100)]],
+      description: [this.freelancer?.description || '', [Validators.required, Validators.minLength(20)]],
+      category: [this.freelancer?.category?.name || '', Validators.required]
     });
   }
 
@@ -181,12 +449,8 @@ export class ProfileComponent implements OnInit {
     const raw = this.freelancerEditForm.value;
     const payload = {
       title: String(raw.title ?? ''),
-      bio: String(raw.bio ?? ''),
-      skills: (String(raw.skills ?? '')).split(',').map((s: string) => s.trim()).filter(Boolean),
-      hourlyRate: raw.hourlyRate == null || raw.hourlyRate === '' ? undefined : Number(raw.hourlyRate),
-      categories: (String(raw.categories ?? '')).split(',').map((s: string) => s.trim()).filter(Boolean),
-      portfolioUrl: String(raw.portfolioUrl ?? ''),
-      location: String(raw.location ?? '')
+      description: String(raw.description ?? ''),
+      category: raw.category
     };
 
     console.log('Sending payload:', payload);
@@ -208,44 +472,15 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  toggleCreateService(): void {
-    this.showCreateServiceForm = !this.showCreateServiceForm;
-    if (this.showCreateServiceForm && !this.createServiceForm) {
-      this.initCreateServiceForm();
-    }
-  }
-
-  createService(): void {
-    if (!this.createServiceForm || this.createServiceForm.invalid) return;
-    if (!this.freelancer && !this.currentUser) return;
-
-    this.createServiceSubmitting = true;
-    const raw = this.createServiceForm.value;
-    const payload = {
-      title: String(raw.title ?? ''),
-      description: String(raw.description ?? ''),
-      price: raw.price == null || raw.price === '' ? undefined : Number(raw.price),
-      deliveryTime: String(raw.deliveryTime ?? ''),
-      category: String(raw.category ?? '')
-    };
-
-    const fid = this.freelancer?.id || this.currentUser!.id;
-    this.api.createServiceForFreelancer(fid, payload).subscribe({
-      next: (svc: any) => {
-        this.services.unshift(svc);
-        this.createServiceSubmitting = false;
-        this.showCreateServiceForm = false;
-        try { this.cd.markForCheck(); } catch (e) {}
-      },
-      error: (err) => {
-        console.error('create service error', err);
-        this.createServiceSubmitting = false;
-      }
-    });
-  }
 
   toggleEdit(): void {
     this.isEditing = !this.isEditing;
+    if (!this.isEditing) {
+      this.resetAddressForm();
+      this.resetPhoneForm();
+      this.showAddressForm = false;
+      this.showPhoneForm = false;
+    }
   }
 
   saveProfile(): void {
@@ -264,14 +499,10 @@ export class ProfileComponent implements OnInit {
     this.isSaving = true;
     const formData = this.profileForm.value;
 
-    // Atualizar o usuário com TODOS os dados do formulário
     if (this.currentUser) {
       const updatedUser = { 
         ...this.currentUser, 
-        nickname: formData.nickname || this.currentUser.nickname,
-        name: formData.name || this.currentUser.name,
-        phone: formData.phone,
-        bio: formData.bio
+        name: formData.name || this.currentUser.name
       };
       
       console.log('Updating user:', updatedUser);
@@ -281,38 +512,10 @@ export class ProfileComponent implements OnInit {
 
     this.isSaving = false;
     this.isEditing = false;
-    
-    // Forçar detecção de mudanças
-    this.cd.markForCheck();
+    this.resetAddressForm();
+    this.resetPhoneForm();
+    this.cd.detectChanges();
     console.log('Profile saved successfully');
-  }
-
-  /**
-   * Formata o telefone automaticamente no padrão (DD) DDDDD-DDDD
-   */
-  formatPhoneInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    let value = input.value.replace(/\D/g, ''); // Remove tudo que não é dígito
-    
-    // Limita a 11 dígitos (DDD + número)
-    if (value.length > 11) {
-      value = value.substring(0, 11);
-    }
-    
-    // Aplica a máscara
-    if (value.length > 0) {
-      if (value.length <= 2) {
-        value = `(${value}`;
-      } else if (value.length <= 7) {
-        value = `(${value.substring(0, 2)}) ${value.substring(2)}`;
-      } else {
-        value = `(${value.substring(0, 2)}) ${value.substring(2, 7)}-${value.substring(7)}`;
-      }
-    }
-    
-    // Atualiza o valor no input e no form control
-    input.value = value;
-    this.profileForm.patchValue({ phone: value }, { emitEvent: false });
   }
 
   logout(): void {

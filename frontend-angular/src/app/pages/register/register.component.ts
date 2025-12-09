@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { AddressDTO, PhoneDTO } from '../../models/user.model';
 
 // Validador customizado para comparar senhas
 function passwordMatchValidator(control: AbstractControl): { [key: string]: boolean } | null {
@@ -48,9 +49,19 @@ export class RegisterComponent implements OnInit {
     }
 
     this.registerForm = this.fb.group({
+      name: ['', [Validators.required, Validators.minLength(3)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', [Validators.required]],
+      // Endereço opcional
+      street: [''],
+      city: [''],
+      state: [''],
+      zipCode: [''],
+      country: [''],
+      // Telefone opcional
+      phoneNumber: [''],
+      phoneDescription: [''],
       agreeTerms: [false, Validators.requiredTrue]
     }, { validators: passwordMatchValidator });
   }
@@ -64,10 +75,49 @@ export class RegisterComponent implements OnInit {
     this.isLoading = true;
     this.error = null;
 
-    const { email, password } = this.registerForm.value;
-    const role = 'USER'; // Sempre registrar como USER
+    const {
+      name,
+      email,
+      password,
+      street,
+      city,
+      state,
+      zipCode,
+      country,
+      phoneNumber,
+      phoneDescription
+    } = this.registerForm.value;
 
-    this.authService.register(email, password, role).subscribe({
+    // Endereço opcional: se algum campo for preenchido, todos tornam-se obrigatórios
+    const hasAddressInput = [street, city, state, zipCode, country].some((v: string) => !!v?.trim());
+    if (hasAddressInput) {
+      const missingAddress = [street, city, state, zipCode, country].some((v: string) => !v?.trim());
+      if (missingAddress) {
+        this.isLoading = false;
+        this.error = 'Preencha todos os campos de endereço ou deixe-os em branco.';
+        return;
+      }
+    }
+
+    const addressDTO: AddressDTO[] = hasAddressInput ? [{
+      id: 0,
+      street: street.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      zipCode: zipCode.trim(),
+      country: country.trim()
+    }] : [];
+
+    // Telefone opcional: se número informado, inclui
+    const hasPhone = !!phoneNumber?.trim();
+    const phoneDTO: PhoneDTO[] = hasPhone ? [{
+      id: 0,
+      number: phoneNumber.trim(),
+      isWhatsApp: false,
+      description: phoneDescription?.trim() || ''
+    }] : [];
+
+    this.authService.register(name, email, password, addressDTO, phoneDTO).subscribe({
       next: (response) => {
         this.isLoading = false;
         console.log('Cadastro bem-sucedido:', response);
@@ -97,8 +147,15 @@ export class RegisterComponent implements OnInit {
     if (field.errors['required']) {
       const labels: { [key: string]: string } = {
         email: 'E-mail',
+        name: 'Nome',
         password: 'Senha',
-        confirmPassword: 'Confirmação de Senha'
+        confirmPassword: 'Confirmação de Senha',
+        street: 'Rua',
+        city: 'Cidade',
+        state: 'Estado',
+        zipCode: 'CEP',
+        country: 'País',
+        phoneNumber: 'Telefone'
       };
       return `${labels[fieldName] || fieldName} é obrigatório.`;
     }

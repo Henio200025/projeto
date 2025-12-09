@@ -10,8 +10,8 @@
 
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { Observable, of, throwError } from 'rxjs';
+import { map, switchMap, tap, catchError, retry, delay } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { MockApiService } from './mock-api.service';
 import { NotificationService } from './notification.service';
@@ -30,7 +30,7 @@ import {
   providedIn: 'root'
 })
 export class ServiceRequestManagementService {
-  private readonly API_BASE = '/api/service-requests';
+  private readonly API_BASE = '/api/services';
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   private mockApi = inject(MockApiService);
@@ -52,47 +52,39 @@ export class ServiceRequestManagementService {
    * Status inicial: PENDING_BUDGET
    */
   createRequest(data: CreateServiceRequestDTO): Observable<ServiceRequestResponseDTO> {
-    // Try mock path first
+    const currentUser = this.authService.currentUserValue;
+    const payload = {
+      description: data.description,
+      price: data.price,
+      location: data.location,
+      createdAt: data.createdAt,
+      userId: data.userId
+    };
+
+    // Caminho mock para desenvolvimento local
     try {
-      const currentUser = this.authService.currentUserValue;
       if (currentUser) {
-        // Mock API usa serviceId, n\u00e3o freelancerId
-        const serviceId = (data as any).serviceId || data.freelancerId;
-        const payload = { 
-          user: { id: String(currentUser.id), name: currentUser.name }, 
-          message: data.description,
-          title: data.title
-        };
-        const resp$ = (this.mockApi as any).postRequest(serviceId, payload);
-        return resp$.pipe(
-          map((r: any) => {
-            if (!r) {
-              throw new Error('Falha ao criar requisição no mock');
-            }
-            // Notificar freelancer sobre novo pedido
-            this.notificationService.addNotification('new_request', r.id, data.title);
-            return { 
-              id: r.id,
-              title: data.title,
-              description: data.description,
-              freelancerId: data.freelancerId,
-              status: ServiceRequestStatus.PENDING_BUDGET,
-              createdAt: r.createdAt || new Date().toISOString()
-            } as any as ServiceRequestResponseDTO;
-          })
+        return this.mockApi.createService(data.freelancerProfileId, payload).pipe(
+          map((res: any) => ({
+            id: res?.id ?? Math.random().toString(),
+            description: payload.description,
+            status: ServiceRequestStatus.PENDING,
+            price: payload.price,
+            location: payload.location,
+            user: { id: currentUser.id, name: currentUser.name },
+            freelancer: { id: data.freelancerProfileId, title: '', user: { id: 0, name: '' } },
+            createdAt: payload.createdAt
+          } as ServiceRequestResponseDTO))
         );
       }
     } catch (e) {
       console.error('Mock path failed:', e);
     }
+
     return this.http.post<ServiceRequestResponseDTO>(
-      this.API_BASE,
-      data,
+      `${this.API_BASE}/create/${data.freelancerProfileId}`,
+      payload,
       { headers: this.getHeaders() }
-    ).pipe(
-      tap(res => {
-        this.notificationService.addNotification('new_request', res.id, res.title);
-      })
     );
   }
 
@@ -100,46 +92,38 @@ export class ServiceRequestManagementService {
 
   /**
    * Freelancer envia orçamento para o pedido
-   * POST /api/service-requests/{id}/budget
-   * Status: PENDING_BUDGET → BUDGETED
+   * PATCH /services/{serviceId}/wait
+   * Status: PENDING → WAITING_USER
    */
-  sendBudget(requestId: string | number, budget: SendBudgetDTO): Observable<ServiceRequestResponseDTO> {
-    try {
-      const reqs = (this.mockApi as any).requests || [];
-      // find by id equality (supports 'req500' or numeric)
-      const r = reqs.find((x: any) => x.id == requestId);
-      if (r) {
-        r.price = budget.price;
-        r.estimatedDays = budget.estimatedDays;
-        r.budgetNotes = budget.notes;
-        r.budgetSentAt = new Date().toISOString();
-        r.status = 'BUDGETED';
-        
-        // Notificar o cliente que recebeu orçamento
-        this.notificationService.addNotification('budget_received', requestId, r.title);
-        
-        return of({
-          id: r.id,
-          title: `Pedido ${r.id}`,
-          description: r.message || '',
-          status: ServiceRequestStatus.BUDGETED,
-          price: r.price,
-          estimatedDays: r.estimatedDays,
-          budgetNotes: r.budgetNotes,
-          user: { id: Number(r.user.id), name: r.user.name },
-          freelancer: { id: r.serviceId, title: '', user: { id: 0, name: '' } },
-          createdAt: r.createdAt,
-          updatedAt: new Date().toISOString()
-        } as ServiceRequestResponseDTO);
+  sendBudget(requestId: string | number, budget: SendBudgetDTO): Observable<{ success: boolean }> {
+    const payload = {
+      price: budget.price,
+      description: budget.description || ''
+    };
+
+    console.log('Enviando contraproposta:', { serviceId: requestId, payload });
+
+    return this.http.patch(
+      `${this.API_BASE}/${requestId}/wait`,
+      payload,
+      { 
+        headers: this.getHeaders(),
+        responseType: 'text'
       }
-    } catch (e) {}
-    return this.http.post<ServiceRequestResponseDTO>(
-      `${this.API_BASE}/${requestId}/budget`,
-      budget,
-      { headers: this.getHeaders() }
     ).pipe(
-      tap(response => {
-        this.notificationService.addNotification('budget_received', requestId, response.title);
+      retry({ count: 1, delay: 1000 }),
+      map(() => ({ success: true })),
+      tap(() => {
+        console.log('✓ Contraproposta enviada com sucesso');
+      }),
+      catchError(err => {
+        console.error('✗ Erro ao enviar contraproposta:', {
+          status: err.status,
+          statusText: err.statusText,
+          message: err.error?.message || err.message || err.error,
+          fullError: err
+        });
+        return throwError(() => err);
       })
     );
   }
@@ -149,24 +133,25 @@ export class ServiceRequestManagementService {
    * PUT /api/service-requests/{id}/budget
    */
   updateBudget(requestId: string | number, budget: SendBudgetDTO): Observable<ServiceRequestResponseDTO> {
+    const payload = {
+      price: budget.price,
+      description: budget.description
+    };
+
     try {
       const reqs = (this.mockApi as any).requests || [];
       const r = reqs.find((x: any) => x.id == requestId);
       if (r) {
         r.price = budget.price;
-        r.estimatedDays = budget.estimatedDays;
-        r.budgetNotes = budget.notes;
-        r.updatedAt = new Date().toISOString();
-        return of({
-          ...(r as any),
-          id: r.id,
-          status: r.status === 'PENDING' ? ServiceRequestStatus.PENDING_BUDGET : (r.status as any)
-        } as ServiceRequestResponseDTO);
+        r.description = budget.description;
+        r.status = ServiceRequestStatus.WAITING_USER;
+        return of({ ...(r as any), id: r.id } as ServiceRequestResponseDTO);
       }
     } catch (e) {}
-    return this.http.put<ServiceRequestResponseDTO>(
-      `${this.API_BASE}/${requestId}/budget`,
-      budget,
+
+    return this.http.patch<ServiceRequestResponseDTO>(
+      `${this.API_BASE}/${requestId}/wait`,
+      payload,
       { headers: this.getHeaders() }
     );
   }
@@ -183,22 +168,9 @@ export class ServiceRequestManagementService {
       const reqs = (this.mockApi as any).requests || [];
       const r = reqs.find((x: any) => x.id == requestId);
       if (r) {
-        r.userResponse = response.accept ? 'accepted' : 'rejected';
-        r.userMessage = response.message;
         r.respondedAt = new Date().toISOString();
-        r.status = response.accept ? 'ACCEPTED' : 'REJECTED';
-        
-        // Se aceito, compartilha o telefone do usuário com o freelancer
-        if (response.accept) {
-          const currentUser = this.authService.currentUserValue;
-          r.userPhone = currentUser?.phone || '(não cadastrado)';
-          // Notificar freelancer que orçamento foi aceito
-          this.notificationService.addNotification('budget_accepted', requestId, r.title);
-        } else {
-          // Notificar freelancer que orçamento foi rejeitado
-          this.notificationService.addNotification('budget_rejected', requestId, r.title);
-        }
-        
+        r.status = response.accept ? ServiceRequestStatus.PENDING : ServiceRequestStatus.CANCELLED;
+
         return of({
           ...(r as any),
           id: r.id,
@@ -206,72 +178,50 @@ export class ServiceRequestManagementService {
         } as ServiceRequestResponseDTO);
       }
     } catch (e) {}
-    return this.http.post<ServiceRequestResponseDTO>(
-      `${this.API_BASE}/${requestId}/respond`,
+    if (!response.accept) {
+      // Backend não tem rejeição explícita; usar cancel como fallback
+      return this.cancelRequest(requestId, 'Usuário rejeitou orçamento');
+    }
+
+    return this.http.patch<ServiceRequestResponseDTO>(
+      `${this.API_BASE}/${requestId}/accept`,
       response,
       { headers: this.getHeaders() }
-    ).pipe(
-      tap(res => {
-        const notifType = response.accept ? 'budget_accepted' : 'budget_rejected';
-        this.notificationService.addNotification(notifType, requestId, res.title);
-      })
     );
   }
 
   // ==================== GERENCIAR STATUS ====================
 
-  /**
-   * Freelancer inicia trabalho
-   * PATCH /api/service-requests/{id}/start
-   * Status: ACCEPTED → IN_PROGRESS
-   */
   startWork(requestId: string | number): Observable<ServiceRequestResponseDTO> {
-      try {
-        const reqs = (this.mockApi as any).requests || [];
-        const r = reqs.find((x: any) => x.id == requestId);
-        if (r) {
-          r.status = 'IN_PROGRESS';
-          // Notificar cliente que trabalho foi iniciado
-          this.notificationService.addNotification('work_started', requestId, r.title);
-          return of({ ...(r as any), id: r.id } as ServiceRequestResponseDTO);
-        }
-      } catch (e) {}
-      return this.http.patch<ServiceRequestResponseDTO>(
-        `${this.API_BASE}/${requestId}/start`,
-        {},
-        { headers: this.getHeaders() }
-      ).pipe(
-        tap(res => {
-          this.notificationService.addNotification('work_started', requestId, res.title);
-        })
-      );
+    try {
+      const reqs = (this.mockApi as any).requests || [];
+      const r = reqs.find((x: any) => x.id == requestId);
+      if (r) {
+        r.status = ServiceRequestStatus.IN_PROGRESS;
+        return of({ ...(r as any), id: r.id } as ServiceRequestResponseDTO);
+      }
+    } catch (e) {}
+    return this.http.patch<ServiceRequestResponseDTO>(
+      `${this.API_BASE}/${requestId}/in-progress`,
+      {},
+      { headers: this.getHeaders() }
+    );
   }
 
-  /**
-   * Freelancer completa trabalho
-   * PATCH /api/service-requests/{id}/complete
-   * Status: IN_PROGRESS → COMPLETED
-   */
   completeWork(requestId: string | number): Observable<ServiceRequestResponseDTO> {
-      try {
-        const reqs = (this.mockApi as any).requests || [];
-        const r = reqs.find((x: any) => x.id == requestId);
-        if (r) {
-          r.status = 'COMPLETED';
-          // Notificar cliente que trabalho foi concluído
-          this.notificationService.addNotification('work_completed', requestId, r.title);
-          return of({ ...(r as any), id: r.id } as ServiceRequestResponseDTO);
-        }
-      } catch (e) {}
-      return this.http.patch<ServiceRequestResponseDTO>(
-        `${this.API_BASE}/${requestId}/complete`,
-        {},
-        { headers: this.getHeaders() }
-      ).pipe(
-        tap(res => {
-          this.notificationService.addNotification('work_completed', requestId, res.title);
-        })
-      );
+    try {
+      const reqs = (this.mockApi as any).requests || [];
+      const r = reqs.find((x: any) => x.id == requestId);
+      if (r) {
+        r.status = ServiceRequestStatus.COMPLETED;
+        return of({ ...(r as any), id: r.id } as ServiceRequestResponseDTO);
+      }
+    } catch (e) {}
+    return this.http.patch<ServiceRequestResponseDTO>(
+      `${this.API_BASE}/${requestId}/complete`,
+      {},
+      { headers: this.getHeaders() }
+    );
   }
 
   /**
@@ -314,39 +264,13 @@ export class ServiceRequestManagementService {
    * GET /api/service-requests/my-requests
    */
   getMyRequests(filters?: ServiceRequestFilters): Observable<ServiceRequestResponseDTO[]> {
-    // If running with mock (MockApiService seeded), build data from mock
-    try {
-      // try to use mock data
-      const currentUser = this.authService.currentUserValue;
-      if (currentUser) {
-        const uid = String(currentUser.id);
-        const reqs = (this.mockApi as any).requests || [];
-        const services = (this.mockApi as any).services || [];
-        const mapped = reqs
-          .filter((r: any) => String(r.user?.id) === uid)
-          .map((r: any) => {
-            const svc = services.find((s: any) => s.id == r.serviceId) || null;
-            return {
-              id: r.id,
-              title: svc ? svc.title : `Pedido ${r.id}`,
-              description: r.message || '',
-              status: r.status === 'PENDING' ? ServiceRequestStatus.PENDING_BUDGET : (r.status as any) || ServiceRequestStatus.PENDING_BUDGET,
-              price: r.price !== undefined ? r.price : null,
-              estimatedDays: r.estimatedDays || null,
-              budgetNotes: r.budgetNotes || null,
-              user: { id: Number(r.user.id), name: r.user.name },
-              freelancer: svc ? { id: svc.freelancer.id, title: svc.freelancer.name, user: { id: svc.freelancer.id, name: svc.freelancer.name } } : { id: 0, title: '', user: { id: 0, name: '' } },
-              createdAt: r.createdAt,
-              updatedAt: r.updatedAt || r.createdAt
-            } as ServiceRequestResponseDTO;
-          });
-        return of(mapped);
-      }
-    } catch (e) {
-      // fallback to HTTP
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) {
+      return of([]);
     }
+
     return this.http.get<ServiceRequestResponseDTO[]>(
-      `${this.API_BASE}/my-requests`,
+      `${this.API_BASE}/user/${currentUser.id}`,
       { 
         headers: this.getHeaders(),
         params: this.buildParams(filters)
@@ -359,44 +283,24 @@ export class ServiceRequestManagementService {
    * GET /api/service-requests/my-jobs
    */
   getMyJobs(filters?: ServiceRequestFilters): Observable<ServiceRequestResponseDTO[]> {
-    try {
-      const currentUser = this.authService.currentUserValue;
-      if (currentUser) {
-        const fid = String(currentUser.id);
-        const reqs = (this.mockApi as any).requests || [];
-        const services = (this.mockApi as any).services || [];
-        const mapped = reqs
-          .filter((r: any) => {
-            const svc = services.find((s: any) => s.id == r.serviceId);
-            const flId = svc?.freelancer?.id;
-            return String(flId) === fid || String(svc?.freelancer?.userId || '') === fid;
-          })
-          .map((r: any) => {
-            const svc = services.find((s: any) => s.id == r.serviceId) || null;
-            return {
-              id: r.id,
-              title: svc ? svc.title : `Pedido ${r.id}`,
-              description: r.message || '',
-              status: r.status === 'PENDING' ? ServiceRequestStatus.PENDING_BUDGET : (r.status as any) || ServiceRequestStatus.PENDING_BUDGET,
-              price: r.price,
-              estimatedDays: r.estimatedDays,
-              budgetNotes: r.budgetNotes,
-              userPhone: r.userPhone,
-              user: { id: Number(r.user.id), name: r.user.name },
-              freelancer: svc ? { id: svc.freelancer.id, title: svc.freelancer.name, user: { id: svc.freelancer.id, name: svc.freelancer.name } } : { id: 0, title: '', user: { id: 0, name: '' } },
-              createdAt: r.createdAt,
-              updatedAt: r.updatedAt || r.createdAt
-            } as ServiceRequestResponseDTO;
-          });
-        return of(mapped);
-      }
-    } catch (e) {}
-    return this.http.get<ServiceRequestResponseDTO[]>(
-      `${this.API_BASE}/my-jobs`,
-      { 
-        headers: this.getHeaders(),
-        params: this.buildParams(filters)
-      }
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) {
+      return of([]);
+    }
+
+    // Obter perfil do freelancer do usuário autenticado e, em seguida, buscar seus serviços
+    return this.http.get<any[]>(`/api/freelancers/user/${currentUser.id}`, { headers: this.getHeaders() }).pipe(
+      map((profiles) => profiles?.[0]?.id as number | undefined),
+      switchMap((profileId) => {
+        if (!profileId) return of([]);
+        return this.http.get<ServiceRequestResponseDTO[]>(
+          `/api/freelancers/${profileId}/services`,
+          {
+            headers: this.getHeaders(),
+            params: this.buildParams(filters)
+          }
+        );
+      })
     );
   }
 
@@ -452,22 +356,21 @@ export class ServiceRequestManagementService {
    * Verifica se usuário pode responder orçamento
    */
   canRespondBudget(request: ServiceRequestResponseDTO): boolean {
-    return request.status === ServiceRequestStatus.BUDGETED;
+    return request.status === ServiceRequestStatus.WAITING_USER;
   }
 
   /**
    * Verifica se freelancer pode enviar/atualizar orçamento
    */
   canSendBudget(request: ServiceRequestResponseDTO): boolean {
-    return request.status === ServiceRequestStatus.PENDING_BUDGET || 
-           request.status === ServiceRequestStatus.BUDGETED;
+    return request.status === ServiceRequestStatus.PENDING;
   }
 
   /**
    * Verifica se pode iniciar trabalho
    */
   canStartWork(request: ServiceRequestResponseDTO): boolean {
-    return request.status === ServiceRequestStatus.ACCEPTED;
+    return request.status === ServiceRequestStatus.CONFIRMED;
   }
 
   /**
@@ -483,7 +386,7 @@ export class ServiceRequestManagementService {
    * Após conclusão, acesso é removido
    */
   isPhoneAvailable(request: ServiceRequestResponseDTO): boolean {
-    return request.status === ServiceRequestStatus.ACCEPTED || 
+    return request.status === ServiceRequestStatus.CONFIRMED || 
            request.status === ServiceRequestStatus.IN_PROGRESS;
   }
 }

@@ -2,33 +2,39 @@
  * Models para o fluxo de requisição de serviços
  * 
  * Fluxo:
- * 1. Usuário cria pedido (PENDING_BUDGET) → descrição do que precisa
- * 2. Freelancer envia orçamento (BUDGETED) → valor + tempo estimado
- * 3. Usuário aceita (ACCEPTED) → freelancer recebe telefone
- *    OU rejeita (REJECTED) → pedido cancelado
- * 4. Freelancer executa (IN_PROGRESS)
- * 5. Freelancer finaliza (COMPLETED)
+ * 1. Usuário cria pedido → serviço nasce em PENDING
+ * 2. Freelancer pode colocar em WAITING_USER (ajusta preço/descrição)
+ * 3. Usuário aceita o ajuste → volta a PENDING
+ * 4. Freelancer confirma → CONFIRMED
+ * 5. Freelancer move para IN_PROGRESS e depois COMPLETED
+ * Ambos podem cancelar enquanto não estiver COMPLETED
  */
 
 import { UserSimpleResponseDTO } from './user.model';
 import { FreelancerSimpleResponseDTO } from './freelancer.model';
 
+// Interface para telefone
+export interface PhoneOption {
+  id: number | string;
+  number: string;
+  description: string;
+  isWhatsApp: boolean;
+}
+
 // Status do pedido/requisição
 export enum ServiceRequestStatus {
-  PENDING_BUDGET = 'PENDING_BUDGET',     // Aguardando orçamento do freelancer
-  BUDGETED = 'BUDGETED',                 // Freelancer enviou orçamento
-  ACCEPTED = 'ACCEPTED',                 // Usuário aceitou orçamento
-  REJECTED = 'REJECTED',                 // Usuário rejeitou orçamento
-  IN_PROGRESS = 'IN_PROGRESS',           // Serviço em andamento
-  COMPLETED = 'COMPLETED',               // Serviço concluído
-  CANCELLED = 'CANCELLED'                // Cancelado
+  PENDING = 'PENDING',
+  WAITING_USER = 'WAITING_USER',
+  CONFIRMED = 'CONFIRMED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED'
 }
 
 export const ServiceRequestStatusLabels: Record<ServiceRequestStatus, string> = {
-  [ServiceRequestStatus.PENDING_BUDGET]: 'Aguardando Orçamento',
-  [ServiceRequestStatus.BUDGETED]: 'Orçamento Enviado',
-  [ServiceRequestStatus.ACCEPTED]: 'Aceito',
-  [ServiceRequestStatus.REJECTED]: 'Rejeitado',
+  [ServiceRequestStatus.PENDING]: 'Pendente',
+  [ServiceRequestStatus.WAITING_USER]: 'Aguardando Usuário',
+  [ServiceRequestStatus.CONFIRMED]: 'Confirmado',
   [ServiceRequestStatus.IN_PROGRESS]: 'Em Andamento',
   [ServiceRequestStatus.COMPLETED]: 'Concluído',
   [ServiceRequestStatus.CANCELLED]: 'Cancelado'
@@ -36,61 +42,49 @@ export const ServiceRequestStatusLabels: Record<ServiceRequestStatus, string> = 
 
 // DTO para criar pedido (Usuário → Freelancer)
 export interface CreateServiceRequestDTO {
-  freelancerId: number;           // ID do freelancer para quem está pedindo
-  title: string;                  // Título breve do serviço
-  description: string;            // Descrição detalhada do que precisa
+  freelancerProfileId: number;    // ID do perfil de freelancer
+  description: string;            // Descrição do pedido
+  price: number;                  // Valor proposto
+  location: string;               // Local (ou Remoto)
+  createdAt: string;              // Data/hora ISO
+  userId: number;                 // ID do usuário autenticado
 }
 
 // DTO para freelancer enviar orçamento
 export interface SendBudgetDTO {
-  price: number;                  // Valor cobrado
-  estimatedDays?: number;         // Tempo estimado em dias (opcional)
-  notes?: string;                 // Observações do freelancer sobre o orçamento
+  price?: number;                 // Valor ajustado pelo freelancer
+  description?: string;           // Descrição ajustada (opcional)
 }
 
-// DTO para usuário responder orçamento
+// DTO para usuário responder ajuste (aceitar WAITING_USER)
 export interface RespondBudgetDTO {
-  accept: boolean;                // true = aceitar, false = rejeitar
-  message?: string;               // Mensagem opcional do usuário
+  accept: boolean;
+  phone?: string;  // Telefone do cliente para o freelancer entrar em contato
 }
 
 // Resposta completa do pedido
 export interface ServiceRequestResponseDTO {
   id: string | number;
-  title: string;
-  description: string;            // Descrição do usuário
+  description: string;            // Descrição do serviço/pedido
   status: ServiceRequestStatus;
   
-  // Orçamento (preenchido quando freelancer enviar)
-  price?: number;
-  estimatedDays?: number;
-  budgetNotes?: string;
-  budgetSentAt?: string;          // Data que freelancer enviou orçamento
-  
-  // Resposta do usuário
-  userResponse?: 'accepted' | 'rejected';
-  userMessage?: string;
-  respondedAt?: string;           // Data que usuário respondeu
-  
+  price: number;
+  location: string;
+  clientPhone?: string;            // Telefone do cliente para contato
+
   // Relacionamentos
-  user: UserSimpleResponseDTO;    // Cliente que pediu
-  freelancer: FreelancerSimpleResponseDTO; // Freelancer que vai executar
-  
-  // Contato (visível apenas após aceitar)
-  userPhone?: string;             // Telefone liberado após aceitação
-  
+  user: UserSimpleResponseDTO;                 // Cliente que pediu
+  freelancer: FreelancerSimpleResponseDTO;     // Freelancer que vai executar
+
   // Timestamps
   createdAt: string;
-  updatedAt: string;
 }
 
 // DTO simplificado para listagens
 export interface ServiceRequestSimpleDTO {
   id: string | number;
-  title: string;
   status: ServiceRequestStatus;
-  price?: number;
-  estimatedDays?: number;
+  price: number;
   userName: string;
   freelancerName: string;
   createdAt: string;

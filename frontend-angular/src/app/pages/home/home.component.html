@@ -64,7 +64,7 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <app-service-card *ngFor="let service of featuredServices" [service]="service" (open)="router.navigateByUrl('/service/' + service.id)"></app-service-card>
+        <app-service-card *ngFor="let freelancer of featuredFreelancers" [service]="freelancer" (open)="router.navigateByUrl('/freelancer/' + freelancer.id)"></app-service-card>
       </div>
     </div>
   </section>

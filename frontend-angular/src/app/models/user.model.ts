@@ -8,18 +8,16 @@ export interface UserSimpleResponseDTO {
 export interface AddressDTO {
   id?: number;
   street: string;
-  number: string;
-  complement?: string;
-  neighborhood: string;
   city: string;
   state: string;
   zipCode: string;
+  country: string;
 }
 
 export interface PhoneDTO {
   id?: number;
   number: string;
-  isWhatsApp: boolean;
+  isWhatsApp?: boolean | null;
   description: string;
 }
 

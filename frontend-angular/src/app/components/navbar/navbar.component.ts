@@ -21,7 +21,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   navLinks = [
-    { label: 'Explorar Serviços', path: '/browse' },
+    { label: 'Explorar Freelancers', path: '/browse' },
     { label: 'Como Funciona', path: '/how-it-works' },
     { label: 'Seja Freelancer', path: '/become-freelancer' },
   ];
@@ -46,9 +46,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   get isFreelancer(): boolean {
-    const role = this.currentUser?.role;
-    if (!role) return false;
-    return String(role).toLowerCase() === 'freelancer' || !!this.currentUser?.isFreelancer;
+    return !!this.currentUser?.isFreelancer;
   }
 
   constructor(

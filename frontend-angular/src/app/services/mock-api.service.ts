@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
-import { of } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { of, Observable } from 'rxjs';
 import { delay } from 'rxjs/operators';
 import { CategoryType, CategoryTypeLabels } from '../models/enums';
+import { FreelancerResponseDTO } from '../models/freelancer.model';
 
 export interface Category {
   id: number;
@@ -21,15 +23,26 @@ export interface Freelancer {
 
 export interface ServiceItem {
   id: number | string;
-  title: string;
-  description?: string;
-  price?: number;
-  deliveryTime?: string;
-  category?: string;
+  description: string;
+  price: number;
+  location: string;
+  createdAt: string;
+  userId: number;
   thumbnailUrl?: string;
   // images are not provided by backend endpoints — UI should use placeholders
   reviews?: Array<{ id: string; score: number; comment?: string; createdAt?: string; user?: { id: string; name: string } }>;
   freelancer?: Freelancer;
+}
+
+// Card para explorar freelancers (catálogo)
+export interface FreelancerListItem {
+  id: number | string;
+  title: string;
+  description: string;
+  category: CategoryType;
+  averageRating: number;
+  reviews?: number;
+  userName: string;
 }
 
 export interface RequestItem {
@@ -60,149 +73,28 @@ export class MockApiService {
     { id: 12, name: CategoryType.Other, icon: '📦', count: 41 }
   ];
 
-  // Serviços de teste alinhados com backend (CategoryType enum)
-  private services: ServiceItem[] = [
-    {
-      id: 's1',
-      title: 'Reparo hidráulico residencial',
-      description: 'Conserto de vazamentos, substituição de válvulas e manutenção preventiva',
-      price: 120,
-      deliveryTime: '1 dia',
-      category: CategoryType.HomeServices,
-      thumbnailUrl: '',
-      freelancer: { id: 'u1', name: 'João Silva', avatar: 'JS', rating: 4.8, reviews: 34 },
-      reviews: [
-        { id: 'r1', score: 5, comment: 'Serviço rápido e muito profissional.', createdAt: '2025-11-20T08:30:00Z', user: { id: 'c1', name: 'Carlos' } }
-      ]
-    },
-    {
-      id: 's2',
-      title: 'Instalação elétrica residencial',
-      description: 'Troca de fiação, instalação de pontos e quadro elétrico',
-      price: 200,
-      deliveryTime: '2 dias',
-      category: CategoryType.HomeServices,
-      thumbnailUrl: '',
-      freelancer: { id: 'u2', name: 'Mariana Costa', avatar: 'MC', rating: 4.9, reviews: 52 },
-      reviews: [
-        { id: 'r2', score: 5, comment: 'Excelente trabalho.', createdAt: '2025-11-10T15:00:00Z', user: { id: 'c2', name: 'Ana' } }
-      ]
-    },
-    {
-      id: 's3',
-      title: 'Desenvolvimento de site institucional',
-      description: 'Site responsivo com 5 páginas, SEO otimizado e painel admin',
-      price: 1200,
-      deliveryTime: '7 dias',
-      category: CategoryType.Technology,
-      thumbnailUrl: '',
-      freelancer: { id: 'u3', name: 'Sarah Johnson', avatar: 'SJ', rating: 4.9, reviews: 127 },
-      reviews: []
-    },
-    {
-      id: 's4',
-      title: 'Aulas particulares de Inglês',
-      description: 'Aulas online individuais para todos os níveis, material incluso',
-      price: 80,
-      deliveryTime: '1 hora',
-      category: CategoryType.Education,
-      thumbnailUrl: '',
-      freelancer: { id: 'u4', name: 'Michael Brown', avatar: 'MB', rating: 4.7, reviews: 89 },
-      reviews: []
-    },
-    {
-      id: 's5',
-      title: 'Design de logotipo profissional',
-      description: '3 conceitos iniciais, revisões ilimitadas, arquivos em alta resolução',
-      price: 350,
-      deliveryTime: '5 dias',
-      category: CategoryType.CreativeArts,
-      thumbnailUrl: '',
-      freelancer: { id: 'u5', name: 'Isabella Rodrigues', avatar: 'IR', rating: 5.0, reviews: 156 },
-      reviews: []
-    },
-    {
-      id: 's6',
-      title: 'Consultoria de marketing digital',
-      description: 'Análise completa, estratégia de redes sociais e plano de ação',
-      price: 600,
-      deliveryTime: '7 dias',
-      category: CategoryType.MarketingAndSales,
-      thumbnailUrl: '',
-      freelancer: { id: 'u6', name: 'Lucas Mendes', avatar: 'LM', rating: 4.8, reviews: 74 },
-      reviews: []
-    },
-    {
-      id: 's7',
-      title: 'Tradução PT-EN profissional',
-      description: 'Tradução certificada de documentos e textos técnicos',
-      price: 150,
-      deliveryTime: '3 dias',
-      category: CategoryType.WritingAndTranslation,
-      thumbnailUrl: '',
-      freelancer: { id: 'u7', name: 'Amanda Santos', avatar: 'AS', rating: 4.9, reviews: 103 },
-      reviews: []
-    },
-    {
-      id: 's8',
-      title: 'Personal trainer online',
-      description: 'Treino personalizado, acompanhamento semanal e plano nutricional',
-      price: 250,
-      deliveryTime: '30 dias',
-      category: CategoryType.HealthAndWellness,
-      thumbnailUrl: '',
-      freelancer: { id: 'u8', name: 'Rafael Oliveira', avatar: 'RO', rating: 4.8, reviews: 67 },
-      reviews: []
-    },
-    {
-      id: 's9',
-      title: 'Manicure e pedicure domiciliar',
-      description: 'Atendimento em domicílio com produtos profissionais',
-      price: 60,
-      deliveryTime: '1 hora',
-      category: CategoryType.PersonalCare,
-      thumbnailUrl: '',
-      freelancer: { id: 'u9', name: 'Julia Lima', avatar: 'JL', rating: 4.9, reviews: 92 },
-      reviews: []
-    },
-    {
-      id: 's10',
-      title: 'DJ para festas e eventos',
-      description: 'Equipamento profissional, playlist personalizada, 4 horas',
-      price: 800,
-      deliveryTime: '1 dia',
-      category: CategoryType.EventsAndEntertainment,
-      thumbnailUrl: '',
-      freelancer: { id: 'u10', name: 'Bruno Castro', avatar: 'BC', rating: 4.7, reviews: 134 },
-      reviews: []
-    },
-    {
-      id: 's11',
-      title: 'Consultoria jurídica empresarial',
-      description: 'Análise de contratos, parecer jurídico e orientação legal',
-      price: 450,
-      deliveryTime: '5 dias',
-      category: CategoryType.LegalAndConsulting,
-      thumbnailUrl: '',
-      freelancer: { id: 'u11', name: 'Dr. Pedro Alves', avatar: 'PA', rating: 5.0, reviews: 54 },
-      reviews: []
-    },
-    {
-      id: 's12',
-      title: 'Assessoria financeira pessoal',
-      description: 'Planejamento financeiro, investimentos e controle de gastos',
-      price: 380,
-      deliveryTime: '7 dias',
-      category: CategoryType.BusinessAndFinance,
-      thumbnailUrl: '',
-      freelancer: { id: 'u12', name: 'Fernanda Souza', avatar: 'FS', rating: 4.8, reviews: 78 },
-      reviews: []
-    }
+  // Serviços de teste alinhados com novo backend
+  private services: ServiceItem[] = [];
+
+  // Catálogo mock de freelancers (front agora explora freelancers)
+  private freelancerCards: FreelancerListItem[] = [
+    { id: 'f1', title: 'Reparo hidráulico residencial', description: 'Conserto de vazamentos, substituição de válvulas e manutenção preventiva', category: CategoryType.HomeServices, averageRating: 4.8, reviews: 34, userName: 'João Silva' },
+    { id: 'f2', title: 'Instalação elétrica residencial', description: 'Troca de fiação, instalação de pontos e quadro elétrico', category: CategoryType.HomeServices, averageRating: 4.9, reviews: 52, userName: 'Mariana Costa' },
+    { id: 'f3', title: 'Desenvolvimento de site institucional', description: 'Site responsivo com 5 páginas, SEO otimizado e painel admin', category: CategoryType.Technology, averageRating: 4.9, reviews: 127, userName: 'Sarah Johnson' },
+    { id: 'f4', title: 'Aulas particulares de Inglês', description: 'Aulas online individuais para todos os níveis, material incluso', category: CategoryType.Education, averageRating: 4.7, reviews: 89, userName: 'Michael Brown' },
+    { id: 'f5', title: 'Design de logotipo profissional', description: '3 conceitos iniciais, revisões ilimitadas, arquivos em alta resolução', category: CategoryType.CreativeArts, averageRating: 5.0, reviews: 156, userName: 'Isabella Rodrigues' },
+    { id: 'f6', title: 'Consultoria de marketing digital', description: 'Análise completa, estratégia de redes sociais e plano de ação', category: CategoryType.MarketingAndSales, averageRating: 4.8, reviews: 74, userName: 'Lucas Mendes' },
+    { id: 'f7', title: 'Tradução PT-EN profissional', description: 'Tradução certificada de documentos e textos técnicos', category: CategoryType.WritingAndTranslation, averageRating: 4.9, reviews: 103, userName: 'Amanda Santos' },
+    { id: 'f8', title: 'Personal trainer online', description: 'Treino personalizado, acompanhamento semanal e plano nutricional', category: CategoryType.HealthAndWellness, averageRating: 4.8, reviews: 67, userName: 'Rafael Oliveira' },
+    { id: 'f9', title: 'Manicure e pedicure domiciliar', description: 'Atendimento em domicílio com produtos profissionais', category: CategoryType.PersonalCare, averageRating: 4.9, reviews: 92, userName: 'Julia Lima' },
+    { id: 'f10', title: 'DJ para festas e eventos', description: 'Equipamento profissional, playlist personalizada, 4 horas', category: CategoryType.EventsAndEntertainment, averageRating: 4.7, reviews: 134, userName: 'Bruno Castro' },
+    { id: 'f11', title: 'Consultoria jurídica empresarial', description: 'Análise de contratos, parecer jurídico e orientação legal', category: CategoryType.LegalAndConsulting, averageRating: 5.0, reviews: 54, userName: 'Dr. Pedro Alves' },
+    { id: 'f12', title: 'Assessoria financeira pessoal', description: 'Planejamento financeiro, investimentos e controle de gastos', category: CategoryType.BusinessAndFinance, averageRating: 4.8, reviews: 78, userName: 'Fernanda Souza' }
   ];
 
   // Seed test freelancer and service for local testing
   // Freelancer userId 2001, client userId 1001
-  constructor() {
+  constructor(private http: HttpClient) {
     // add a dedicated freelancer profile
     const testFreelancer = {
       id: `fr_2001`,
@@ -217,11 +109,11 @@ export class MockApiService {
     // add a service owned by this freelancer
     const testService: ServiceItem = {
       id: 's100',
-      title: 'Serviço de Teste - Limpeza Residencial',
       description: 'Serviço completo de limpeza criado para teste entre contas mock.',
       price: 150,
-      deliveryTime: '2 dias',
-      category: CategoryType.HomeServices,
+      location: 'São Paulo, SP',
+      createdAt: new Date().toISOString(),
+      userId: 2001,
       thumbnailUrl: '',
       freelancer: { id: testFreelancer.id, userId: '2001', name: 'Freelancer Test', avatar: 'FT', rating: 4.7, reviews: 10 },
       reviews: []
@@ -253,63 +145,45 @@ export class MockApiService {
     return of(this.categories).pipe(delay(200));
   }
 
-  getFeaturedServices() {
-    return of(this.services.slice(0, 3)).pipe(delay(300));
+  getFeaturedFreelancers() {
+    return of(this.freelancerCards.slice(0, 4)).pipe(delay(200));
   }
 
-  searchServices(query = '', category?: string, page = 1, perPage = 12) {
-    return this.searchServicesWithParams({ q: query, category, page, perPage });
+  searchFreelancers(query = '', category?: string, page = 1, perPage = 12) {
+    return this.searchFreelancersWithParams({ q: query, category, page, perPage });
+  }
+
+  // Busca real no backend
+  getFreelancersFromApi() {
+    // Use proxy /api para bater no backend Java
+    return this.http.get<FreelancerResponseDTO[]>(`/api/freelancers`);
   }
 
   /**
    * Nova versão de busca que aceita um objeto de filtros.
    * Prepara o método para futura integração com backend real.
    */
-  searchServicesWithParams(params: {
+  searchFreelancersWithParams(params: {
     q?: string;
     category?: string;
     page?: number;
     perPage?: number;
-    minPrice?: number;
-    maxPrice?: number;
     minRating?: number;
-    deliveryTime?: string; // ex: '1 dia', '7 dias'
-    sortBy?: 'price_asc' | 'price_desc' | 'rating_desc' | 'newest';
-    onlyAvailable?: boolean;
   }) {
     const q = (params.q || '').toLowerCase();
-    let results = this.services.filter((s) => {
+    let results = this.freelancerCards.filter((f) => {
       return (
-        (s.title || '').toLowerCase().includes(q) ||
-        (s.description || '').toLowerCase().includes(q) ||
-        (s.category || '').toLowerCase().includes(q) ||
-        (s.freelancer?.name || '').toLowerCase().includes(q)
+        f.title.toLowerCase().includes(q) ||
+        f.description.toLowerCase().includes(q) ||
+        f.userName.toLowerCase().includes(q)
       );
     });
 
     if (params.category) {
-      results = results.filter((s) => s.category === params.category);
-    }
-    if (typeof params.minPrice === 'number') {
-      results = results.filter((s) => typeof s.price === 'number' && s.price >= params.minPrice!);
-    }
-    if (typeof params.maxPrice === 'number') {
-      results = results.filter((s) => typeof s.price === 'number' && s.price <= params.maxPrice!);
+      results = results.filter((f) => f.category === params.category);
     }
     if (typeof params.minRating === 'number') {
-      results = results.filter((s) => typeof s.freelancer?.rating === 'number' && (s.freelancer!.rating! >= params.minRating!));
-    }
-    if (params.deliveryTime) {
-      // simple match: includes string (backend may use enum/number, mapping will be done in integration)
-      results = results.filter((s) => (s.deliveryTime || '').toLowerCase().includes(params.deliveryTime!.toLowerCase()));
-    }
-
-    // Sorting
-    if (params.sortBy) {
-      if (params.sortBy === 'price_asc') results = results.sort((a, b) => (a.price || 0) - (b.price || 0));
-      if (params.sortBy === 'price_desc') results = results.sort((a, b) => (b.price || 0) - (a.price || 0));
-      if (params.sortBy === 'rating_desc') results = results.sort((a, b) => (b.freelancer?.rating || 0) - (a.freelancer?.rating || 0));
-      if (params.sortBy === 'newest') results = results; // mock already pushes newest first
+      results = results.filter((f) => f.averageRating >= params.minRating!);
     }
 
     const page = params.page || 1;
@@ -323,6 +197,11 @@ export class MockApiService {
 
   getServiceById(id: string | number) {
     const item = this.services.find((s) => s.id == id) || null;
+    return of(item).pipe(delay(150));
+  }
+
+  getFreelancerCardById(id: string | number) {
+    const item = this.freelancerCards.find((f) => f.id == id) || null;
     return of(item).pipe(delay(150));
   }
 
@@ -362,7 +241,7 @@ export class MockApiService {
       serviceId: serviceId as any,
       user: payload.user,
       message: payload.message || '',
-      title: payload.title || svc.title || 'Solicita\u00e7\u00e3o de Servi\u00e7o',
+      title: payload.title || 'Solicitação de Serviço',
       status: 'PENDING',
       createdAt: new Date().toISOString()
     };
@@ -377,37 +256,25 @@ export class MockApiService {
   }
 
   // freelancer endpoints
-  createFreelancerForUser(userId: string | number, payload: { title?: string; bio?: string; skills?: string[]; hourlyRate?: number; categories?: string[]; portfolioUrl?: string; location?: string }) {
-    const id = `fr_${this.nextFreelancerId++}`;
-    const item = {
-      id,
-      userId,
-      ...payload,
-      createdAt: new Date().toISOString()
-    };
-    this.freelancers.unshift(item as any);
-    return of(item).pipe(delay(200));
+  createFreelancerForUser(userId: string | number, payload: { title: string; description: string; category: string }) {
+    return this.http.post<FreelancerResponseDTO>(`/api/freelancers/${userId}/create`, payload);
   }
 
-  updateFreelancer(id: string | number, payload: { title?: string; bio?: string; skills?: string[]; hourlyRate?: number; categories?: string[]; portfolioUrl?: string; location?: string }) {
-    const idx = this.freelancers.findIndex((x) => x.id == id);
-    if (idx === -1) return of(null).pipe(delay(120));
-    const updated = { ...this.freelancers[idx], ...payload } as any;
-    this.freelancers[idx] = updated;
-    return of(updated).pipe(delay(150));
+  updateFreelancer(id: string | number, payload: { title: string; description: string; category: string }) {
+    return this.http.put<FreelancerResponseDTO>(`/api/freelancers/${id}`, payload);
   }
 
-  createServiceForFreelancer(freelancerId: string | number, payload: { title: string; description?: string; price?: number; deliveryTime?: string; category?: string; thumbnailUrl?: string; }) {
+  createServiceForFreelancer(freelancerId: string | number, payload: { description: string; price: number; location: string; createdAt: string; userId: number; }) {
     // create a service and attach the freelancer meta
     const id = `s${this.nextServiceId++}`;
     const svc: ServiceItem = {
       id,
-      title: payload.title,
-      description: payload.description || '',
+      description: payload.description,
       price: payload.price,
-      deliveryTime: payload.deliveryTime,
-      category: payload.category,
-      thumbnailUrl: payload.thumbnailUrl || '',
+      location: payload.location,
+      createdAt: payload.createdAt,
+      userId: payload.userId,
+      thumbnailUrl: '',
       freelancer: { id: freelancerId, name: 'Você', avatar: '', rating: undefined, reviews: undefined },
       reviews: []
     } as ServiceItem;
@@ -417,18 +284,24 @@ export class MockApiService {
     return of(svc).pipe(delay(150));
   }
 
+  createService(freelancerProfileId: number, payload: { description: string; price: number; location: string; createdAt: string; userId: number | undefined }) {
+    return this.http.post(`/api/services/create/${freelancerProfileId}`, payload);
+  }
+
+  updateService(serviceId: number, payload: { description: string; price: number; location: string }) {
+    return this.http.put(`/api/services/${serviceId}`, payload);
+  }
+
   getServicesByFreelancerId(freelancerId: string | number) {
     const list = this.services.filter((s) => s.freelancer && s.freelancer.id == freelancerId);
     return of(list).pipe(delay(150));
   }
 
-  getFreelancerById(id: string | number) {
-    const f = this.freelancers.find((x) => x.id == id) || null;
-    return of(f).pipe(delay(150));
+  getFreelancerById(id: string | number): Observable<FreelancerResponseDTO | null> {
+    return this.http.get<FreelancerResponseDTO>(`/api/freelancers/${id}`);
   }
 
-  getFreelancerByUserId(userId: string | number) {
-    const f = this.freelancers.find((x) => x.userId == userId) || null;
-    return of(f).pipe(delay(150));
+  getFreelancerByUserId(userId: string | number): Observable<FreelancerResponseDTO | null> {
+    return this.http.get<FreelancerResponseDTO>(`/api/freelancers/user/${userId}`);
   }
 }

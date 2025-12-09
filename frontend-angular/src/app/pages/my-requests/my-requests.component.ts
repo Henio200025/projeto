@@ -1,18 +1,20 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ServiceRequestManagementService } from '../../services/service-request-management.service';
 import { AuthService } from '../../services/auth.service';
+import { AcceptBudgetModalComponent } from '../../components/accept-budget-modal/accept-budget-modal.component';
 import {
   ServiceRequestResponseDTO,
   ServiceRequestStatus,
   ServiceRequestStatusLabels,
-  RespondBudgetDTO
+  RespondBudgetDTO,
+  PhoneOption
 } from '../../models/service-request.model';
 
 @Component({
   selector: 'app-my-requests',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AcceptBudgetModalComponent],
   templateUrl: './my-requests.component.html',
   styleUrls: ['./my-requests.component.css']
 })
@@ -23,16 +25,50 @@ export class MyRequestsComponent implements OnInit {
   requests = signal<ServiceRequestResponseDTO[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
+  userPhones = signal<PhoneOption[]>([]);
   
   // Para filtros
   selectedStatus = signal<ServiceRequestStatus | 'all'>('all');
+  
+  // Para modal de aceitar orçamento
+  showAcceptModal = signal(false);
+  selectedRequestForAccept = signal<ServiceRequestResponseDTO | null>(null);
   
   // Enums expostos para o template
   readonly StatusEnum = ServiceRequestStatus;
   readonly StatusLabels = ServiceRequestStatusLabels;
 
+  constructor() {
+    // Quando a modal é aberta, recarrega os telefones do usuário do servidor
+    effect(() => {
+      if (this.showAcceptModal()) {
+        this.authService.refreshCurrentUser().subscribe(() => {
+          this.loadUserPhones();
+        });
+      }
+    });
+  }
+
   ngOnInit() {
+    this.loadUserPhones();
     this.loadRequests();
+  }
+
+  loadUserPhones() {
+    this.authService.currentUser$.subscribe(user => {
+      if (user && user.phones && Array.isArray(user.phones)) {
+        // Converter PhoneDTO para PhoneOption
+        const phones: PhoneOption[] = user.phones.map(p => ({
+          id: p.id || '',
+          number: p.number,
+          description: p.description,
+          isWhatsApp: p.isWhatsApp || false
+        }));
+        this.userPhones.set(phones);
+      } else {
+        this.userPhones.set([]);
+      }
+    });
   }
 
   loadRequests() {
@@ -69,50 +105,29 @@ export class MyRequestsComponent implements OnInit {
     this.loadRequests();
   }
 
-  acceptBudget(requestId: string | number) {
-    // Verificar se usuário tem telefone cadastrado
-    const currentUser = this.authService.currentUserValue;
-    const hasPhone = currentUser?.phone && currentUser.phone.trim() !== '';
-    
-    // BLOQUEAR aceitação se não houver telefone
-    if (!hasPhone) {
-      alert('❌ Telefone obrigatório!\n\nVocê precisa cadastrar seu número de telefone no perfil antes de aceitar um orçamento.\n\nO freelancer precisa do seu contato para iniciar o trabalho.\n\n👉 Vá em Perfil e adicione seu telefone.');
-      return;
-    }
-    
-    const confirmMessage = '✓ Aceitar este orçamento?\n\nO freelancer receberá seu número de telefone para iniciar o contato e combinar os detalhes do trabalho.';
-    
-    if (!confirm(confirmMessage)) {
-      return;
-    }
+  acceptBudget(request: ServiceRequestResponseDTO) {
+    this.selectedRequestForAccept.set(request);
+    this.showAcceptModal.set(true);
+  }
 
-    const response: RespondBudgetDTO = { accept: true };
-    
-    this.requestService.respondBudget(requestId, response).subscribe({
-      next: () => {
-        alert('✓ Orçamento aceito com sucesso!\n\nSeu telefone foi compartilhado com o freelancer. Aguarde o contato para combinar os detalhes.');
-        this.loadRequests();
-      },
-      error: (err) => {
-        alert('❌ Erro ao aceitar orçamento. Tente novamente.');
-        console.error('Erro:', err);
-      }
-    });
+  closeAcceptModal() {
+    this.showAcceptModal.set(false);
+    this.selectedRequestForAccept.set(null);
+  }
+
+  onBudgetAccepted() {
+    this.closeAcceptModal();
+    this.loadRequests();
   }
 
   rejectBudget(requestId: string | number) {
-    const message = prompt('✗ Você está rejeitando este orçamento.\n\nDeseja deixar uma mensagem explicando o motivo? (opcional)');
-    
-    if (message === null) return; // Cancelou
-
     const response: RespondBudgetDTO = { 
-      accept: false,
-      message: message || undefined
+      accept: false
     };
     
     this.requestService.respondBudget(requestId, response).subscribe({
       next: () => {
-        alert('✗ Orçamento rejeitado.\n\nO pedido foi cancelado e o freelancer foi notificado.');
+        alert('✗ Pedido cancelado.');
         this.loadRequests();
       },
       error: (err) => {
@@ -145,10 +160,9 @@ export class MyRequestsComponent implements OnInit {
 
   getStatusClass(status: ServiceRequestStatus): string {
     const classes: Record<ServiceRequestStatus, string> = {
-      [ServiceRequestStatus.PENDING_BUDGET]: 'status-pending',
-      [ServiceRequestStatus.BUDGETED]: 'status-budgeted',
-      [ServiceRequestStatus.ACCEPTED]: 'status-accepted',
-      [ServiceRequestStatus.REJECTED]: 'status-rejected',
+      [ServiceRequestStatus.PENDING]: 'status-pending',
+      [ServiceRequestStatus.WAITING_USER]: 'status-budgeted',
+      [ServiceRequestStatus.CONFIRMED]: 'status-accepted',
       [ServiceRequestStatus.IN_PROGRESS]: 'status-progress',
       [ServiceRequestStatus.COMPLETED]: 'status-completed',
       [ServiceRequestStatus.CANCELLED]: 'status-cancelled'
@@ -170,5 +184,9 @@ export class MyRequestsComponent implements OnInit {
       style: 'currency', 
       currency: 'BRL' 
     });
+  }
+
+  getStatusLabel(status: any): string {
+    return ServiceRequestStatusLabels[status as ServiceRequestStatus] || status;
   }
 }

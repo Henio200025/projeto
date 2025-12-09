@@ -12,7 +12,7 @@ import { RouterModule } from '@angular/router';
 export class FooterComponent {
   footerLinks = {
     Product: [
-      { label: 'Browse Services', path: '/browse' },
+      { label: 'Browse Freelancers', path: '/browse' },
       { label: 'How It Works', path: '/#how-it-works' },
       { label: 'Pricing', path: '/pricing' },
       { label: 'Enterprise', path: '/enterprise' },

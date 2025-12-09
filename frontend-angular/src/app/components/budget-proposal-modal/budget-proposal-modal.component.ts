@@ -1,68 +1,58 @@
 import { Component, Input, Output, EventEmitter, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../../services/auth.service';
 import { ServiceRequestManagementService } from '../../services/service-request-management.service';
-import { CreateServiceRequestDTO } from '../../models/service-request.model';
+import { SendBudgetDTO } from '../../models/service-request.model';
 
 @Component({
-  selector: 'app-request-service-modal',
+  selector: 'app-budget-proposal-modal',
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
     <div class="modal-overlay" (click)="close()">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header">
-          <h2>Solicitar Orçamento</h2>
+          <h2>Enviar Contraproposta</h2>
           <button class="btn-close" (click)="close()">&times;</button>
         </div>
 
         <div class="modal-body">
           <p class="modal-description">
-            Descreva o serviço que você precisa para <strong>{{ serviceName }}</strong>. 
-            {{ freelancerName }} receberá sua solicitação e enviará um orçamento.
+            Ajuste o preço e a descrição da solicitação de <strong>{{ clientName }}</strong>. 
+            O cliente receberá sua contraproposta e poderá aceitar ou fazer nova solicitação.
           </p>
 
           <form (ngSubmit)="submit()">
             <div class="form-group">
-              <label for="description">Descrição Detalhada *</label>
+              <label for="price">Preço Proposto (R$) *</label>
+              <input 
+                id="price"
+                type="number"
+                step="0.01"
+                min="0"
+                [(ngModel)]="form().price"
+                name="price"
+                required
+                class="form-input"
+                placeholder="Ex: 350.00" />
+              <small class="form-hint">
+                Valor que você propõe para executar este trabalho
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label for="description">Descrição/Observações *</label>
               <textarea 
                 id="description"
                 [(ngModel)]="form().description" 
                 name="description"
                 required
-                rows="8"
-                placeholder="Descreva o que você precisa com o máximo de detalhes possível...&#10;&#10;Inclua informações como:&#10;- Objetivos do projeto&#10;- Prazos desejados&#10;- Requisitos específicos&#10;- Orçamento aproximado (se tiver)"
+                rows="6"
+                placeholder="Descreva como você pretende executar o trabalho...&#10;&#10;Inclua:&#10;- Abordagem do projeto&#10;- Prazos estimados&#10;- Detalhes do serviço&#10;- Qualquer observação importante"
                 class="form-textarea"></textarea>
               <small class="form-hint">
-                Quanto mais detalhes você fornecer, mais preciso será o orçamento.
+                Seja claro e detalhado para que o cliente compreenda sua proposta
               </small>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group half">
-                <label for="price">Preço proposto (R$) *</label>
-                <input 
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  [(ngModel)]="form().price"
-                  name="price"
-                  required
-                  class="form-input"
-                  placeholder="Ex: 150.00" />
-              </div>
-              <div class="form-group half">
-                <label for="location">Localização *</label>
-                <input 
-                  id="location"
-                  [(ngModel)]="form().location"
-                  name="location"
-                  required
-                  class="form-input"
-                  placeholder="Cidade/UF ou Remoto" />
-              </div>
             </div>
 
             @if (error()) {
@@ -76,7 +66,7 @@ import { CreateServiceRequestDTO } from '../../models/service-request.model';
                 @if (submitting()) {
                   <span>Enviando...</span>
                 } @else {
-                  <span>Solicitar Orçamento</span>
+                  <span>Enviar Contraproposta</span>
                 }
               </button>
               <button type="button" class="btn-cancel" (click)="close()">
@@ -199,9 +189,9 @@ import { CreateServiceRequestDTO } from '../../models/service-request.model';
       padding: 0.625rem 0.875rem;
       border: 1px solid #d1d5db;
       border-radius: 0.5rem;
-      font-size: 0.875rem;
-      transition: all 0.2s;
+      font-size: 1rem;
       font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     .form-input:focus,
@@ -211,56 +201,50 @@ import { CreateServiceRequestDTO } from '../../models/service-request.model';
       box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
     }
 
-    .form-textarea {
-      resize: vertical;
-      min-height: 120px;
-    }
-
     .form-hint {
       display: block;
       margin-top: 0.375rem;
-      color: #6b7280;
-      font-size: 0.75rem;
+      font-size: 0.8125rem;
+      color: #9ca3af;
       line-height: 1.4;
     }
 
     .error-message {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #dc2626;
-      padding: 0.75rem;
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 0.75rem 1rem;
       border-radius: 0.5rem;
-      font-size: 0.875rem;
       margin-bottom: 1rem;
+      font-size: 0.875rem;
+      border-left: 4px solid #dc2626;
     }
 
     .form-actions {
       display: flex;
-      gap: 0.75rem;
+      gap: 1rem;
       margin-top: 1.5rem;
     }
 
-    .btn-submit,
-    .btn-cancel {
+    .form-actions button {
       flex: 1;
-      padding: 0.75rem 1.5rem;
+      padding: 0.75rem 1rem;
       border-radius: 0.5rem;
       font-weight: 600;
-      font-size: 0.875rem;
+      font-size: 1rem;
       cursor: pointer;
       transition: all 0.2s;
       border: none;
     }
 
     .btn-submit {
-      background: #7c3aed;
+      background: #10b981;
       color: white;
     }
 
     .btn-submit:hover:not(:disabled) {
-      background: #6d28d9;
+      background: #059669;
       transform: translateY(-1px);
-      box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.3);
+      box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
     }
 
     .btn-submit:disabled {
@@ -289,26 +273,31 @@ import { CreateServiceRequestDTO } from '../../models/service-request.model';
     }
   `]
 })
-export class RequestServiceModalComponent {
+export class BudgetProposalModalComponent {
   @Input() serviceId!: string | number;
-  @Input() freelancerId!: string | number;
-  @Input() freelancerName: string = 'Freelancer';
-  @Input() serviceName: string = 'este serviço';
+  @Input() clientName: string = 'Cliente';
+  @Input() initialPrice: number = 0;
+  @Input() initialDescription: string = '';
   
   @Output() closeModal = new EventEmitter<void>();
-  @Output() requestCreated = new EventEmitter<void>();
+  @Output() proposalSent = new EventEmitter<void>();
 
   private requestService = inject(ServiceRequestManagementService);
-  private auth = inject(AuthService);
 
   form = signal({
-    description: '',
-    price: null as number | null,
-    location: ''
+    price: 0 as number | null,
+    description: ''
   });
 
   submitting = signal(false);
   error = signal<string | null>(null);
+
+  ngOnInit() {
+    this.form.set({
+      price: this.initialPrice || null,
+      description: this.initialDescription
+    });
+  }
 
   close() {
     this.closeModal.emit();
@@ -320,8 +309,14 @@ export class RequestServiceModalComponent {
     const formData = this.form();
     
     // Validações
+    const priceNumber = Number(formData.price);
+    if (isNaN(priceNumber) || priceNumber < 0) {
+      this.error.set('Informe um preço válido (zero ou maior).');
+      return;
+    }
+
     if (!formData.description.trim()) {
-      this.error.set('Por favor, descreva o serviço que você precisa.');
+      this.error.set('Descreva como você pretende executar este trabalho.');
       return;
     }
 
@@ -330,67 +325,40 @@ export class RequestServiceModalComponent {
       return;
     }
 
-    const priceNumber = Number(formData.price);
-    if (isNaN(priceNumber) || priceNumber < 0) {
-      this.error.set('Informe um preço válido (zero ou maior).');
-      return;
-    }
-
-    if (!formData.location.trim() || formData.location.trim().length < 3) {
-      this.error.set('Informe a localização (ex: Cidade/UF ou Remoto).');
-      return;
-    }
-
-    // Validar freelancerId
-    if (!this.freelancerId || this.freelancerId === '') {
-      this.error.set('Erro: ID do freelancer não encontrado. Tente novamente mais tarde.');
-      console.error('FreelancerId inválido:', this.freelancerId);
-      return;
-    }
-
     this.submitting.set(true);
 
-    // Converter freelancerId para número compatível com o backend
-    let freelancerProfileId: number;
-    if (typeof this.freelancerId === 'number') {
-      freelancerProfileId = this.freelancerId;
-    } else {
-      const match = String(this.freelancerId).match(/\d+/);
-      if (match) {
-        freelancerProfileId = parseInt(match[0], 10);
-      } else {
-        freelancerProfileId = String(this.freelancerId).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      }
-    }
-
-    const currentUserId = this.auth.currentUserValue?.id;
-    if (currentUserId === undefined || currentUserId === null) {
-      this.error.set('É necessário estar logado para solicitar um orçamento.');
-      this.submitting.set(false);
-      return;
-    }
-
-    const payload: CreateServiceRequestDTO = {
-      freelancerProfileId,
-      description: formData.description.trim(),
+    const payload: SendBudgetDTO = {
       price: priceNumber,
-      location: formData.location.trim(),
-      createdAt: new Date().toISOString(),
-      userId: currentUserId
+      description: formData.description.trim()
     };
 
-    this.requestService.createRequest(payload).subscribe({
+    console.log('Enviando contraproposta:', { serviceId: this.serviceId, payload });
+
+    this.requestService.sendBudget(this.serviceId, payload).subscribe({
       next: () => {
         this.submitting.set(false);
-        alert(`✓ Pedido enviado para ${this.freelancerName}!`);
-        this.requestCreated.emit();
+        alert(`✓ Contraproposta enviada para ${this.clientName}!`);
+        this.proposalSent.emit();
         this.close();
       },
       error: (err: any) => {
-        console.error('Erro ao criar serviço:', err);
-        const errorMessage = err?.error?.message || err?.message || 'Erro ao enviar solicitação';
-        this.error.set(`Erro: ${errorMessage}. Tente novamente.`);
+        console.error('Erro completo ao enviar contraproposta:', err);
         this.submitting.set(false);
+        
+        // Extrair mensagem de erro
+        let errorMessage = 'Erro ao enviar contraproposta';
+        
+        if (err?.error?.message) {
+          errorMessage = err.error.message;
+        } else if (err?.error?.error) {
+          errorMessage = err.error.error;
+        } else if (err?.message) {
+          errorMessage = err.message;
+        } else if (err?.status) {
+          errorMessage = `Erro ${err.status}: ${err.statusText || 'Erro desconhecido'}`;
+        }
+        
+        this.error.set(`Erro: ${errorMessage}. Tente novamente.`);
       }
     });
   }

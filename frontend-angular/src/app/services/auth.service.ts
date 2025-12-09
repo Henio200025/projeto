@@ -1,10 +1,9 @@
 import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { delay } from 'rxjs/operators';
-import { map } from 'rxjs/operators';
-import { LoginRequest, LoginResponse, User } from '../models/user.model';
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { delay, map, switchMap, tap } from 'rxjs/operators';
+import { AddressDTO, PhoneDTO, LoginRequest, LoginResponse, User, UserDTO } from '../models/user.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -98,22 +97,25 @@ export class AuthService {
   /**
    * Decodificar JWT token (simplificado)
    * Em produção, usar jwt-decode library
+   * Token contém: userId, name, email, roles, sub
    */
   private decodeJwtToken(token: string): User {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
+      console.log('JWT Payload:', payload); // Debug
       return {
-        id: payload.userId || 0,
-        name: payload.name || payload.email,
-        email: payload.email || payload.sub,
-        role: payload.roles || 'USER',
-        isFreelancer: payload.roles?.includes('FREELANCER') || false
+        id: payload.userId || payload.sub || 0,
+        name: payload.name || payload.email || 'Usuário',
+        email: payload.email || payload.sub || '',
+        role: Array.isArray(payload.roles) && payload.roles.length > 0 ? payload.roles[0] : 'USER',
+        isFreelancer: Array.isArray(payload.roles) && payload.roles.includes('FREELANCER')
       };
     } catch (e) {
+      console.error('Erro ao decodificar JWT:', e);
       // Fallback se decodificação falhar
       return {
         id: 0,
-        name: 'User',
+        name: 'Usuário',
         email: '',
         role: 'USER',
         isFreelancer: false
@@ -177,29 +179,54 @@ export class AuthService {
   }
 
   /**
+   * Buscar dados atualizados do usuário logado do backend
+   */
+  refreshCurrentUser(): Observable<User> {
+    const currentUser = this.currentUserValue;
+    if (!currentUser) {
+      return throwError(() => new Error('No user logged in'));
+    }
+    
+    return this.http.get<any>(`/api/users/${currentUser.id}`).pipe(
+      map(response => {
+        // Mapear phoneDTO para phones para compatibilidade
+        const user: User = {
+          ...response,
+          phones: response.phoneDTO || response.phones || []
+        };
+        return user;
+      }),
+      tap(user => {
+        this.setLocalStorage('currentUser', JSON.stringify(user));
+        this.currentUserSubject.next(user);
+      })
+    );
+  }
+
+  /**
    * Registrar novo usuário
   * Backend Java: POST /api/users/create
    */
-  register(email: string, password: string, role: string = 'USER'): Observable<LoginResponse> {
-    // Montar o payload conforme esperado pela API Java
-    const payload: any = {
-      name: email.split('@')[0],
+  register(
+    name: string,
+    email: string,
+    password: string,
+    addressDTO: AddressDTO[] = [],
+    phoneDTO: PhoneDTO[] = []
+  ): Observable<LoginResponse> {
+    const payload: UserDTO = {
+      id: 0,
+      name,
       email,
       password,
-      isFreelancer: role === 'FREELANCER',
-      addressDTO: [],
-      phoneDTO: []
+      isFreelancer: false,
+      addressDTO,
+      phoneDTO
     };
-    return this.http
-      .post<LoginResponse>(`${this.API_BASE}/users/create`, payload)
-      .pipe(
-        map((response) => {
-          this.setLocalStorage('authToken', response.token);
-          const user = this.decodeJwtToken(response.token);
-          this.setLocalStorage('currentUser', JSON.stringify(user));
-          this.currentUserSubject.next(user);
-          return response;
-        })
-      );
+
+    // Backend retorna UserDTO (não retorna token). Após criar, fazemos login para obter JWT.
+    return this.http.post<UserDTO>(`${this.API_BASE}/users/create`, payload).pipe(
+      switchMap(() => this.login(email, password))
+    );
   }
 }

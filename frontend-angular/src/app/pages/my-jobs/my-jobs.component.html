@@ -14,24 +14,24 @@
     </button>
     <button 
       class="filter-btn badge-filter"
-      [class.active]="selectedStatus() === StatusEnum.PENDING_BUDGET"
-      (click)="filterByStatus(StatusEnum.PENDING_BUDGET)">
-      Aguardando Orçamento
+      [class.active]="selectedStatus() === StatusEnum.PENDING"
+      (click)="filterByStatus(StatusEnum.PENDING)">
+      Pendentes
       <span class="badge-count" *ngIf="pendingBudgetCount > 0">
         {{ pendingBudgetCount }}
       </span>
     </button>
     <button 
       class="filter-btn"
-      [class.active]="selectedStatus() === StatusEnum.BUDGETED"
-      (click)="filterByStatus(StatusEnum.BUDGETED)">
-      Aguardando Cliente
+      [class.active]="selectedStatus() === StatusEnum.WAITING_USER"
+      (click)="filterByStatus(StatusEnum.WAITING_USER)">
+      Aguardando Usuário
     </button>
     <button 
       class="filter-btn"
-      [class.active]="selectedStatus() === StatusEnum.ACCEPTED"
-      (click)="filterByStatus(StatusEnum.ACCEPTED)">
-      Aceitos
+      [class.active]="selectedStatus() === StatusEnum.CONFIRMED"
+      (click)="filterByStatus(StatusEnum.CONFIRMED)">
+      Confirmados
     </button>
     <button 
       class="filter-btn"
@@ -68,7 +68,7 @@
     <div *ngFor="let job of visibleJobs" class="job-card">
       <div class="card-header">
         <div class="title-section">
-          <h3>{{ job.title }}</h3>
+            <h3>Trabalho #{{ job.id }}</h3>
           <span class="status-badge" [ngClass]="getStatusClass(job.status)">
             {{ StatusLabels[job.status] }}
           </span>
@@ -84,25 +84,28 @@
           <span class="value">{{ job.user.name }}</span>
         </div>
 
-        <!-- Telefone (se aprovado) -->
-        <div *ngIf="isPhoneAvailable(job) && job.userPhone" class="info-row phone-row">
-          <span class="label">📞 Telefone:</span>
-          <span class="value phone">{{ job.userPhone }}</span>
-          <span class="phone-note">(contato liberado)</span>
-        </div>
-
         <div class="info-row">
           <span class="label">Descrição do Cliente:</span>
           <p class="description">{{ job.description }}</p>
         </div>
 
-        <!-- Orçamento Atual -->
+        <div class="info-row">
+          <span class="label">Localização:</span>
+          <span class="value">{{ job.location }}</span>
+        </div>
+
+        <div *ngIf="job.clientPhone" class="info-row">
+          <span class="label">Telefone do Cliente:</span>
+          <span class="value">{{ job.clientPhone }}</span>
+        </div>
+
+        <!-- Ajuste Atual -->
         <div *ngIf="job.price !== null && job.price !== undefined" class="budget-section">
           <div class="budget-header">
-            <h4>Seu Orçamento</h4>
+            <h4>Seu Ajuste</h4>
             <button 
               *ngIf="canSendBudget(job)" 
-              (click)="openBudgetForm(job.id, {price: job.price, estimatedDays: job.estimatedDays, notes: job.budgetNotes})"
+              (click)="openBudgetModal(job)"
               class="btn-edit-budget">
               Editar
             </button>
@@ -114,91 +117,20 @@
               <span class="value price">{{ formatPrice(job.price) }}</span>
             </div>
             
-            <div *ngIf="job.estimatedDays" class="info-row">
-              <span class="label">Prazo:</span>
-              <span class="value">{{ job.estimatedDays }} dias</span>
-            </div>
-            
-            <div *ngIf="job.budgetNotes" class="info-row">
-              <span class="label">Suas Observações:</span>
-              <p class="notes">{{ job.budgetNotes }}</p>
+            <div class="info-row">
+              <span class="label">Descrição proposta:</span>
+              <p class="notes">{{ job.description }}</p>
             </div>
           </div>
         </div>
 
-        <!-- Form de Orçamento -->
-        <div *ngIf="sendingBudget() === job.id" class="budget-form">
-          <h4>{{ job.price ? 'Editar' : 'Enviar' }} Orçamento</h4>
-          
-          <div class="form-group">
-            <label for="price-{{job.id}}">Valor (R$) *</label>
-            <input 
-              type="number" 
-              id="price-{{job.id}}"
-              [(ngModel)]="budgetForm().price" 
-              min="0" 
-              step="0.01"
-              placeholder="0.00"
-              class="form-input">
-          </div>
-
-          <div class="form-group">
-            <label for="days-{{job.id}}">Prazo (dias)</label>
-            <input 
-              type="number" 
-              id="days-{{job.id}}"
-              [(ngModel)]="budgetForm().estimatedDays" 
-              min="0"
-              placeholder="Ex: 7"
-              class="form-input">
-          </div>
-
-          <div class="form-group">
-            <label for="notes-{{job.id}}">Observações</label>
-            <textarea 
-              id="notes-{{job.id}}"
-              [(ngModel)]="budgetForm().notes" 
-              rows="3"
-              placeholder="Informações adicionais sobre o orçamento..."
-              class="form-textarea"></textarea>
-          </div>
-
-          <div class="form-actions">
-            <button 
-              (click)="submitBudget(job.id, !!job.price)" 
-              class="btn-submit">
-              {{ job.price ? 'Atualizar' : 'Enviar' }} Orçamento
-            </button>
-            <button 
-              (click)="closeBudgetForm()" 
-              class="btn-cancel-form">
-              Cancelar
-            </button>
-          </div>
-        </div>
-
-        <!-- Botão para enviar orçamento pela primeira vez -->
-        <div *ngIf="canSendBudget(job) && !job.price && sendingBudget() !== job.id" class="actions">
+        <!-- Botão para enviar ajuste pela primeira vez -->
+        <div *ngIf="canSendBudget(job) && !job.price" class="actions">
           <button 
-            (click)="openBudgetForm(job.id)" 
+            (click)="openBudgetModal(job)" 
             class="btn-send-budget">
-            💰 Enviar Orçamento
+            💰 Enviar Contraproposta
           </button>
-        </div>
-
-        <!-- Status de resposta do cliente -->
-        <div *ngIf="job.userResponse" class="response-section">
-          <div *ngIf="job.userResponse === 'accepted'" class="response-accepted">
-            <strong>✓ Cliente aceitou seu orçamento!</strong>
-            <p *ngIf="job.respondedAt">em {{ formatDate(job.respondedAt) }}</p>
-            <p class="contact-info">Entre em contato para iniciar o trabalho.</p>
-          </div>
-          
-          <div *ngIf="job.userResponse === 'rejected'" class="response-rejected">
-            <strong>✗ Cliente rejeitou o orçamento</strong>
-            <p *ngIf="job.respondedAt">em {{ formatDate(job.respondedAt) }}</p>
-            <p *ngIf="job.userMessage" class="user-message">Motivo: {{ job.userMessage }}</p>
-          </div>
         </div>
 
         <!-- Ações de Progresso -->
@@ -219,8 +151,7 @@
 
           <button 
             *ngIf="job.status !== StatusEnum.COMPLETED && 
-                   job.status !== StatusEnum.CANCELLED && 
-                   job.status !== StatusEnum.REJECTED"
+                 job.status !== StatusEnum.CANCELLED"
             (click)="cancelJob(job.id)" 
             class="btn-cancel-job">
             Cancelar
@@ -229,4 +160,15 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal de Contraproposta do Freelancer -->
+  <app-budget-proposal-modal
+    *ngIf="showBudgetModal() && selectedJobForBudget()"
+    [serviceId]="selectedJobForBudget()!.id"
+    [clientName]="selectedJobForBudget()!.user.name"
+    [initialPrice]="selectedJobForBudget()!.price || 0"
+    [initialDescription]="selectedJobForBudget()!.description || ''"
+    (closeModal)="closeBudgetModal()"
+    (proposalSent)="onProposalSent()">
+  </app-budget-proposal-modal>
 </div>

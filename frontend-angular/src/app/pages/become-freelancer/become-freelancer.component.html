@@ -4,15 +4,19 @@
 
   <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-800 p-3 rounded mb-4">{{ error }}</div>
 
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="p-6 bg-white border rounded text-center">
+    <div class="animate-pulse">Carregando...</div>
+  </div>
+
   <!-- If user already has a freelancer profile and is a freelancer, show a friendly message -->
-  <div *ngIf="isExistingFreelancer" class="p-6 bg-white border rounded text-center">
+  <div *ngIf="!isLoading && isExistingFreelancer" class="p-6 bg-white border rounded text-center">
     <div class="text-2xl font-semibold mb-2">Você já é um freelancer</div>
     <p class="text-sm text-muted-foreground mb-4">Seu perfil já faz parte do time de freelancers do site.</p>
-    <div class="mb-4">
+    <div class="mb-4" *ngIf="existingFreelancer">
       <div class="text-left max-w-xl mx-auto p-4 border rounded bg-muted/50 text-sm">
         <div class="font-semibold">{{ existingFreelancer.title }}</div>
-        <div class="text-muted-foreground">{{ existingFreelancer.location }}</div>
-        <p class="mt-2 text-sm">{{ existingFreelancer.bio }}</p>
+        <p class="mt-2 text-sm">{{ existingFreelancer.description }}</p>
       </div>
     </div>
     <div class="flex items-center justify-center gap-3">
@@ -21,52 +25,64 @@
     </div>
   </div>
 
-  <form *ngIf="!isExistingFreelancer" [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+  <form *ngIf="!isLoading && !isExistingFreelancer" [formGroup]="form" (ngSubmit)="submit()" class="space-y-4 bg-white border rounded p-6">
+    <!-- Título -->
     <div>
-      <label class="block text-sm font-medium mb-1">Título profissional</label>
-      <input formControlName="title" class="w-full px-3 py-2 border rounded" placeholder="Ex: Encanador residencial / Front-end developer" />
-      <div *ngIf="form.get('title')?.invalid && (form.get('title')?.touched || formSubmitted)" class="text-xs text-red-600 mt-1">Título é obrigatório.</div>
-    </div>
-
-    <div>
-      <label class="block text-sm font-medium mb-1">Descrição / Bio</label>
-      <textarea formControlName="bio" rows="5" class="w-full px-3 py-2 border rounded" placeholder="Descreva sua experiência e serviços oferecidos"></textarea>
-      <div *ngIf="form.get('bio')?.invalid && (form.get('bio')?.touched || formSubmitted)" class="text-xs text-red-600 mt-1">
-        <span *ngIf="form.get('bio')?.errors?.['required']">Descrição é obrigatória.</span>
-        <span *ngIf="form.get('bio')?.errors?.['minlength']">A descrição precisa ter ao menos {{ form.get('bio')?.errors?.['minlength']?.requiredLength }} caracteres (apenas {{ form.get('bio')?.value?.length || 0 }} no momento).</span>
+      <label class="block text-sm font-medium mb-1">Título Profissional *</label>
+      <input 
+        formControlName="title" 
+        class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-600" 
+        placeholder="Ex: Encanador residencial / Desenvolvedor Full-Stack" 
+      />
+      <div *ngIf="form.get('title')?.invalid && (form.get('title')?.touched || formSubmitted)" class="text-xs text-red-600 mt-1">
+        <span *ngIf="form.get('title')?.errors?.['required']">Título é obrigatório.</span>
+        <span *ngIf="form.get('title')?.errors?.['minlength']">Mínimo 5 caracteres ({{ form.get('title')?.value?.length || 0 }} no momento).</span>
+        <span *ngIf="form.get('title')?.errors?.['maxlength']">Máximo 100 caracteres ({{ form.get('title')?.value?.length || 0 }} no momento).</span>
       </div>
     </div>
 
+    <!-- Descrição -->
     <div>
-      <label class="block text-sm font-medium mb-1">Skills (separadas por vírgula)</label>
-      <input formControlName="skills" class="w-full px-3 py-2 border rounded" placeholder="ex: hidráulica, instalações, manutenção" />
-      <div *ngIf="form.get('skills')?.invalid && (form.get('skills')?.touched || formSubmitted)" class="text-xs text-red-600 mt-1">Informe ao menos uma skill.</div>
-    </div>
-
-    <div class="grid grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium mb-1">Valor/Hora (opcional)</label>
-        <input formControlName="hourlyRate" type="number" class="w-full px-3 py-2 border rounded" placeholder="Ex: 80" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1">Localização (cidade)</label>
-        <input formControlName="location" class="w-full px-3 py-2 border rounded" placeholder="Ex: São Paulo, SP" />
+      <label class="block text-sm font-medium mb-1">Descrição / Bio *</label>
+      <textarea 
+        formControlName="description" 
+        rows="5" 
+        class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-600" 
+        placeholder="Descreva sua experiência, habilidades e o tipo de trabalho que você realiza (mínimo 20 caracteres)..."
+      ></textarea>
+      <div *ngIf="form.get('description')?.invalid && (form.get('description')?.touched || formSubmitted)" class="text-xs text-red-600 mt-1">
+        <span *ngIf="form.get('description')?.errors?.['required']">Descrição é obrigatória.</span>
+        <span *ngIf="form.get('description')?.errors?.['minlength']">Mínimo 20 caracteres ({{ form.get('description')?.value?.length || 0 }} no momento).</span>
       </div>
     </div>
 
+    <!-- Categoria -->
     <div>
-      <label class="block text-sm font-medium mb-1">Categorias (opcional)</label>
-      <input formControlName="categories" class="w-full px-3 py-2 border rounded" placeholder="Ex: Serviços Domésticos, Reformas" />
+      <label class="block text-sm font-medium mb-1">Categoria *</label>
+      <select 
+        formControlName="category" 
+        class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
+      >
+        <option value="" disabled>Selecione uma categoria</option>
+        <option *ngFor="let cat of categoryOptions" [value]="cat.value">{{ cat.label }}</option>
+      </select>
+      <div *ngIf="form.get('category')?.invalid && (form.get('category')?.touched || formSubmitted)" class="text-xs text-red-600 mt-1">
+        Categoria é obrigatória.
+      </div>
     </div>
 
-    <div>
-      <label class="block text-sm font-medium mb-1">Portfólio / Website (opcional)</label>
-      <input formControlName="portfolioUrl" class="w-full px-3 py-2 border rounded" placeholder="URL do portfólio" />
-    </div>
-
-    <div class="flex items-center gap-3 mt-4">
-      <button type="submit" [disabled]="isSubmitting" class="px-4 py-2 bg-primary text-white rounded btn-animated">{{ isSubmitting ? 'Enviando...' : 'Quero ser Freelancer' }}</button>
-      <button type="button" routerLink="/profile" class="px-4 py-2 border rounded">Cancelar</button>
+    <!-- Submit Button -->
+    <div class="flex items-center gap-3 mt-6 pt-4 border-t">
+      <button 
+        type="submit" 
+        [disabled]="isSubmitting" 
+        class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+      >
+        {{ isSubmitting ? 'Enviando...' : 'Quero ser Freelancer' }}
+      </button>
+      <button type="button" routerLink="/profile" class="px-6 py-2 border rounded-lg hover:bg-muted transition-colors font-medium">
+        Cancelar
+      </button>
     </div>
   </form>
 </div>

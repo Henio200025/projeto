@@ -14,15 +14,21 @@
     </button>
     <button 
       class="filter-btn"
-      [class.active]="selectedStatus() === StatusEnum.PENDING_BUDGET"
-      (click)="filterByStatus(StatusEnum.PENDING_BUDGET)">
-      Aguardando Orçamento
+      [class.active]="selectedStatus() === StatusEnum.PENDING"
+      (click)="filterByStatus(StatusEnum.PENDING)">
+      Pendente
     </button>
     <button 
       class="filter-btn"
-      [class.active]="selectedStatus() === StatusEnum.BUDGETED"
-      (click)="filterByStatus(StatusEnum.BUDGETED)">
-      Orçamento Recebido
+      [class.active]="selectedStatus() === StatusEnum.WAITING_USER"
+      (click)="filterByStatus(StatusEnum.WAITING_USER)">
+      Aguardando Usuário
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.CONFIRMED"
+      (click)="filterByStatus(StatusEnum.CONFIRMED)">
+      Confirmados
     </button>
     <button 
       class="filter-btn"
@@ -54,15 +60,15 @@
   <div *ngIf="!loading() && !error()" class="requests-list">
     <div *ngIf="requests().length === 0" class="empty-state">
       <p>Você ainda não fez nenhum pedido.</p>
-      <a href="/browse-services" class="btn-primary">Buscar Freelancers</a>
+      <a href="/browse" class="btn-primary">Buscar Freelancers</a>
     </div>
 
     <div *ngFor="let request of requests()" class="request-card">
       <div class="card-header">
         <div class="title-section">
-          <h3>{{ request.title }}</h3>
+          <h3>Pedido #{{ request.id }}</h3>
           <span class="status-badge" [ngClass]="getStatusClass(request.status)">
-            {{ StatusLabels[request.status] }}
+            {{ getStatusLabel(request.status) }}
           </span>
         </div>
         <div class="date">
@@ -81,69 +87,41 @@
           <p class="description">{{ request.description }}</p>
         </div>
 
-        <!-- Orçamento (se freelancer já enviou) -->
+        <!-- Orçamento/ajuste do freelancer -->
         <div *ngIf="request.price !== null && request.price !== undefined" class="budget-section">
           <div class="budget-header">
-            <h4>Orçamento</h4>
+            <h4>Proposta do Freelancer</h4>
           </div>
-          
           <div class="budget-details">
             <div class="info-row">
               <span class="label">Valor:</span>
               <span class="value price">{{ formatPrice(request.price) }}</span>
             </div>
-            
-            <div *ngIf="request.estimatedDays" class="info-row">
-              <span class="label">Prazo:</span>
-              <span class="value">{{ request.estimatedDays }} dias</span>
-            </div>
-            
-            <div *ngIf="request.budgetNotes" class="info-row">
-              <span class="label">Observações:</span>
-              <p class="notes">{{ request.budgetNotes }}</p>
-            </div>
-            
-            <div *ngIf="request.budgetSentAt" class="info-row">
-              <span class="label">Enviado em:</span>
-              <span class="value">{{ formatDate(request.budgetSentAt) }}</span>
+            <div class="info-row">
+              <span class="label">Localização:</span>
+              <span class="value">{{ request.location }}</span>
             </div>
           </div>
 
-          <!-- Ações: Aceitar/Rejeitar Orçamento -->
+          <!-- Ações: Aceitar/Cancelar ajuste -->
           <div *ngIf="canRespondBudget(request)" class="actions">
             <button 
-              (click)="acceptBudget(request.id)" 
+              (click)="acceptBudget(request)" 
               class="btn-accept">
-              ✓ Aceitar Orçamento
+              ✓ Aceitar Ajuste
             </button>
             <button 
               (click)="rejectBudget(request.id)" 
               class="btn-reject">
-              ✗ Rejeitar
+              ✗ Cancelar Pedido
             </button>
-          </div>
-        </div>
-
-        <!-- Status de resposta -->
-        <div *ngIf="request.userResponse" class="response-section">
-          <div *ngIf="request.userResponse === 'accepted'" class="response-accepted">
-            <strong>✓ Você aceitou este orçamento</strong>
-            <p *ngIf="request.respondedAt">em {{ formatDate(request.respondedAt) }}</p>
-            <p class="phone-info">O freelancer recebeu seu telefone de contato.</p>
-          </div>
-          
-          <div *ngIf="request.userResponse === 'rejected'" class="response-rejected">
-            <strong>✗ Você rejeitou este orçamento</strong>
-            <p *ngIf="request.respondedAt">em {{ formatDate(request.respondedAt) }}</p>
-            <p *ngIf="request.userMessage" class="user-message">Motivo: {{ request.userMessage }}</p>
           </div>
         </div>
 
         <!-- Ação: Cancelar Pedido -->
         <div 
-          *ngIf="request.status !== StatusEnum.COMPLETED && 
-                 request.status !== StatusEnum.CANCELLED && 
-                 request.status !== StatusEnum.REJECTED"
+             *ngIf="request.status !== StatusEnum.COMPLETED && 
+               request.status !== StatusEnum.CANCELLED"
           class="cancel-section">
           <button 
             (click)="cancelRequest(request.id)" 
@@ -155,3 +133,15 @@
     </div>
   </div>
 </div>
+
+<!-- Modal para aceitar orçamento -->
+<app-accept-budget-modal
+  *ngIf="showAcceptModal() && selectedRequestForAccept()"
+  [requestId]="selectedRequestForAccept()!.id"
+  [freelancerName]="selectedRequestForAccept()!.freelancer.user.name"
+  [budgetPrice]="selectedRequestForAccept()!.price"
+  [budgetDescription]="selectedRequestForAccept()!.description"
+  [userPhones]="userPhones()"
+  (closeModal)="closeAcceptModal()"
+  (budgetAccepted)="onBudgetAccepted()">
+</app-accept-budget-modal>

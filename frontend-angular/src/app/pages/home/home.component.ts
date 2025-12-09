@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MockApiService, ServiceItem, Category } from '../../services/mock-api.service';
+import { MockApiService, Category, FreelancerListItem } from '../../services/mock-api.service';
 import { ServiceCardComponent } from '../../components/service-card/service-card.component';
 import { CategoryCardComponent } from '../../components/category-card/category-card.component';
 
@@ -16,7 +16,7 @@ import { CategoryCardComponent } from '../../components/category-card/category-c
 export class HomeComponent implements OnInit {
   searchQuery = '';
   categories: Category[] = [];
-  featuredServices: ServiceItem[] = [];
+  featuredFreelancers: FreelancerListItem[] = [];
 
   constructor(public router: Router, private api: MockApiService, private cd: ChangeDetectorRef) {}
 
@@ -26,8 +26,8 @@ export class HomeComponent implements OnInit {
       this.categories = c;
       this.cd.markForCheck();
     });
-    this.api.getFeaturedServices().subscribe((s) => {
-      this.featuredServices = s;
+    this.api.getFeaturedFreelancers().subscribe((s) => {
+      this.featuredFreelancers = s;
       this.cd.markForCheck();
     });
   }
