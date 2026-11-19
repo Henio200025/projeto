@@ -1,0 +1,35 @@
+<footer class="bg-muted/30 border-t mt-20">
+  <div class="max-w-7xl mx-auto px-4 py-12">
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-8 mb-12">
+      <div class="col-span-2">
+        <a routerLink="/" class="flex items-center gap-2 mb-4">
+          <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold text-lg">M</div>
+            <span class="text-xl font-bold"><span class="text-purple-600">Uma</span><span class="text-black">Maozinha</span></span>
+        </a>
+  <p class="text-sm text-muted-foreground mb-6 max-w-xs">A plataforma de confiança que conecta empresas a freelancers talentosos ao redor do mundo.</p>
+        <div class="max-w-xs">
+          <p class="text-sm font-medium mb-2">Fique por dentro</p>
+          <div class="flex gap-2">
+            <input type="email" placeholder="Seu e-mail" class="h-9 text-sm" />
+            <button class="btn">Inscrever-se</button>
+          </div>
+        </div>
+      </div>
+
+      <ng-container *ngFor="let entry of footerLinks | keyvalue">
+        <div>
+          <h3 class="font-semibold mb-3 text-sm">{{ entry.key }}</h3>
+          <ul class="space-y-2">
+            <li *ngFor="let l of entry.value">
+              <a [routerLink]="l.path" class="text-sm text-muted-foreground hover:text-foreground transition-colors">{{ l.label }}</a>
+            </li>
+          </ul>
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4">
+  <p class="text-sm text-muted-foreground">© 2024 UmaMaozinha. Todos os direitos reservados.</p>
+    </div>
+  </div>
+</footer>

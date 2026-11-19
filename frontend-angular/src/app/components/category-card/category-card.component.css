@@ -1,0 +1,2 @@
+.category-card { transition: border-color .12s ease, background-color .12s ease; }
+.category-card:hover { border-color: rgba(124,58,237,0.8); }

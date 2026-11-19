@@ -1,0 +1,170 @@
+<div class="my-requests-container">
+  <div class="header">
+    <h1>Meus Pedidos</h1>
+    <p class="subtitle">Acompanhe seus pedidos de serviços</p>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === 'all'"
+      (click)="filterByStatus('all')">
+      Todos
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.PENDING"
+      (click)="filterByStatus(StatusEnum.PENDING)">
+      Pendente
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.WAITING_USER"
+      (click)="filterByStatus(StatusEnum.WAITING_USER)">
+      Aguardando Usuário
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.CONFIRMED"
+      (click)="filterByStatus(StatusEnum.CONFIRMED)">
+      Confirmados
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.IN_PROGRESS"
+      (click)="filterByStatus(StatusEnum.IN_PROGRESS)">
+      Em Andamento
+    </button>
+    <button 
+      class="filter-btn"
+      [class.active]="selectedStatus() === StatusEnum.COMPLETED"
+      (click)="filterByStatus(StatusEnum.COMPLETED)">
+      Concluídos
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading()" class="loading">
+    <div class="spinner"></div>
+    <p>Carregando pedidos...</p>
+  </div>
+
+  <!-- Erro -->
+  <div *ngIf="error()" class="error-message">
+    <p>{{ error() }}</p>
+    <button (click)="loadRequests()" class="btn-retry">Tentar Novamente</button>
+  </div>
+
+  <!-- Lista de Pedidos -->
+  <div *ngIf="!loading() && !error()" class="requests-list">
+    <div *ngIf="requests().length === 0" class="empty-state">
+      <p>Você ainda não fez nenhum pedido.</p>
+      <a href="/browse" class="btn-primary">Buscar Freelancers</a>
+    </div>
+
+    <div *ngFor="let request of requests()" class="request-card">
+      <div class="card-header">
+        <div class="title-section">
+          <h3>Pedido #{{ request.id }}</h3>
+          <span class="status-badge" [ngClass]="getStatusClass(request.status)">
+            {{ getStatusLabel(request.status) }}
+          </span>
+        </div>
+        <div class="date">
+          Criado em {{ formatDate(request.createdAt) }}
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="info-row">
+          <span class="label">Freelancer:</span>
+          <span class="value">{{ request.freelancer.user.name }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Descrição:</span>
+          <p class="description">{{ request.description }}</p>
+        </div>
+
+        <!-- Orçamento/ajuste do freelancer -->
+        <div *ngIf="request.price !== null && request.price !== undefined" class="budget-section">
+          <div class="budget-header">
+            <h4>Proposta do Freelancer</h4>
+          </div>
+          <div class="budget-details">
+            <div class="info-row">
+              <span class="label">Valor:</span>
+              <span class="value price">{{ formatPrice(request.price) }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Localização:</span>
+              <span class="value">{{ request.location }}</span>
+            </div>
+          </div>
+
+          <!-- Ações: Aceitar/Cancelar ajuste -->
+          <div *ngIf="canRespondBudget(request)" class="actions">
+            <button 
+              (click)="acceptBudget(request)" 
+              class="btn-accept">
+              ✓ Aceitar Ajuste
+            </button>
+            <button 
+              (click)="rejectBudget(request.id)" 
+              class="btn-reject">
+              ✗ Cancelar Pedido
+            </button>
+          </div>
+        </div>
+
+        <!-- Ação: Cancelar Pedido -->
+        <div 
+             *ngIf="request.status !== StatusEnum.COMPLETED && 
+               request.status !== StatusEnum.CANCELLED"
+          class="cancel-section">
+          <button 
+            (click)="cancelRequest(request.id)" 
+            class="btn-cancel">
+            Cancelar Pedido
+          </button>
+        </div>
+
+        <!-- Ação: Avaliar Serviço (apenas para pedidos concluídos) -->
+        <div *ngIf="request.status === StatusEnum.COMPLETED" class="rating-section">
+          <button 
+            *ngIf="!isServiceRated(request.id)"
+            (click)="openRatingModal(request)" 
+            class="btn-rate">
+            ⭐ Avaliar Serviço
+          </button>
+          <div *ngIf="isServiceRated(request.id)" class="rating-done">
+            <p>✓ Serviço avaliado</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para aceitar orçamento -->
+<app-accept-budget-modal
+  *ngIf="showAcceptModal() && selectedRequestForAccept()"
+  [requestId]="selectedRequestForAccept()!.id"
+  [freelancerName]="selectedRequestForAccept()!.freelancer.user.name"
+  [budgetPrice]="selectedRequestForAccept()!.price"
+  [budgetDescription]="selectedRequestForAccept()!.description"
+  [userPhones]="userPhones()"
+  (closeModal)="closeAcceptModal()"
+  (budgetAccepted)="onBudgetAccepted()">
+</app-accept-budget-modal>
+
+<!-- Modal de Avaliação -->
+<app-rating-modal
+  *ngIf="showRatingModal() && selectedRequestForRating()"
+  [serviceId]="getServiceIdAsNumber(selectedRequestForRating()!.id)"
+  [freelancerName]="selectedRequestForRating()!.freelancer.user.name"
+  [serviceName]="selectedRequestForRating()!.description"
+  (closeModal)="closeRatingModal()"
+  (ratingSubmitted)="onRatingSubmitted()">
+</app-rating-modal>

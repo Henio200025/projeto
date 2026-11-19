@@ -1,0 +1,350 @@
+<div class="min-h-screen bg-background">
+  <div class="max-w-4xl mx-auto px-4 py-20">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="text-4xl font-bold">Meu Perfil</h1>
+      <button
+        (click)="logout()"
+        class="px-4 py-2 border rounded-lg hover:bg-muted transition-colors"
+      >
+        Sair
+      </button>
+    </div>
+
+    <!-- Profile Card: Dados Pessoais -->
+    <div class="bg-white border rounded-lg shadow-lg p-8 mb-6">
+      <h2 class="text-2xl font-bold mb-6">Dados Pessoais</h2>
+      
+      <!-- Email Display -->
+      <div class="mb-6 pb-6 border-b">
+        <p class="text-sm text-muted-foreground mb-1">Email cadastrado</p>
+        <p class="text-lg font-medium">{{ currentUser?.email }}</p>
+      </div>
+
+      <!-- Edit Form -->
+      <form *ngIf="profileForm" [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="space-y-6">
+        <!-- Nome -->
+        <div>
+          <label class="block text-sm font-medium mb-2">Nome Completo</label>
+          <input
+            type="text"
+            formControlName="name"
+            [readonly]="!isEditing"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+            [class.bg-muted]="!isEditing"
+          />
+        </div>
+
+
+      </form>
+    </div>
+
+    <!-- Endereços -->
+    <div class="bg-white border rounded-lg shadow-lg p-8 mb-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold">Endereços</h2>
+        <button
+          *ngIf="isEditing"
+          type="button"
+          (click)="toggleAddressForm()"
+          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
+        >
+          {{ showAddressForm ? 'Cancelar' : '+ Adicionar Endereço' }}
+        </button>
+      </div>
+
+      <!-- Add/Edit Address Form -->
+      <form *ngIf="isEditing && showAddressForm && addressForm" [formGroup]="addressForm" (ngSubmit)="saveAddress()" class="space-y-4 mb-6 p-4 border rounded-lg bg-muted">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input
+            type="text"
+            formControlName="street"
+            placeholder="Rua/Avenida"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+          />
+          <input
+            type="text"
+            formControlName="city"
+            placeholder="Cidade"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+          />
+          <input
+            type="text"
+            formControlName="state"
+            placeholder="Estado (ex: SP)"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+          />
+          <input
+            type="text"
+            formControlName="zipCode"
+            placeholder="CEP"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+          />
+          <input
+            type="text"
+            formControlName="country"
+            placeholder="País"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+          />
+        </div>
+        <div class="flex gap-3">
+          <button
+            type="submit"
+            [disabled]="addressForm.invalid || savingContactInfo"
+            class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+          >
+            {{ savingContactInfo ? 'Salvando...' : (editingAddressId ? 'Atualizar' : 'Criar') }}
+          </button>
+          <button
+            type="button"
+            (click)="toggleAddressForm()"
+            class="flex-1 px-4 py-2 border rounded-lg hover:bg-muted transition-colors font-medium"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+
+      <!-- Address List -->
+      <div *ngIf="loadingAddresses" class="p-4 text-center text-muted-foreground">Carregando endereços...</div>
+      <div *ngIf="!loadingAddresses && addresses.length === 0" class="p-4 text-center text-muted-foreground">Nenhum endereço cadastrado</div>
+      <div *ngIf="!loadingAddresses && addresses.length > 0" class="space-y-3">
+        <div *ngFor="let address of addresses" class="p-4 border rounded-lg flex justify-between items-start gap-4">
+          <div class="flex-1">
+            <p class="font-medium">{{ address.street }}</p>
+            <p class="text-sm text-muted-foreground">{{ address.city }}, {{ address.state }} - {{ address.zipCode }}</p>
+            <p class="text-sm text-muted-foreground">{{ address.country }}</p>
+          </div>
+          <div class="flex gap-2" *ngIf="isEditing">
+            <button
+              type="button"
+              (click)="editAddress(address)"
+              class="px-3 py-1 text-sm border rounded hover:bg-muted transition-colors"
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              (click)="deleteAddress(address.id)"
+              class="px-3 py-1 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors"
+            >
+              Deletar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Telefones -->
+    <div class="bg-white border rounded-lg shadow-lg p-8 mb-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold">Telefones</h2>
+        <button
+          *ngIf="isEditing"
+          type="button"
+          (click)="togglePhoneForm()"
+          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
+        >
+          {{ showPhoneForm ? 'Cancelar' : '+ Adicionar Telefone' }}
+        </button>
+      </div>
+
+      <!-- Add/Edit Phone Form -->
+      <form *ngIf="isEditing && showPhoneForm && phoneForm" [formGroup]="phoneForm" (ngSubmit)="savePhone()" class="space-y-4 mb-6 p-4 border rounded-lg bg-muted">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input
+            type="tel"
+            formControlName="number"
+            placeholder="(11) 99999-9999"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+          />
+          <input
+            type="text"
+            formControlName="description"
+            placeholder="Ex: Celular, Trabalho, etc"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+          />
+        </div>
+        <div class="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="isWhatsApp"
+            formControlName="isWhatsApp"
+            class="w-4 h-4 rounded cursor-pointer"
+          />
+          <label for="isWhatsApp" class="cursor-pointer text-sm font-medium">É WhatsApp?</label>
+        </div>
+        <div class="flex gap-3">
+          <button
+            type="submit"
+            [disabled]="phoneForm.invalid || savingContactInfo"
+            class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+          >
+            {{ savingContactInfo ? 'Salvando...' : (editingPhoneId ? 'Atualizar' : 'Criar') }}
+          </button>
+          <button
+            type="button"
+            (click)="togglePhoneForm()"
+            class="flex-1 px-4 py-2 border rounded-lg hover:bg-muted transition-colors font-medium"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+
+      <!-- Phone List -->
+      <div *ngIf="loadingPhones" class="p-4 text-center text-muted-foreground">Carregando telefones...</div>
+      <div *ngIf="!loadingPhones && phones.length === 0" class="p-4 text-center text-muted-foreground">Nenhum telefone cadastrado</div>
+      <div *ngIf="!loadingPhones && phones.length > 0" class="space-y-3">
+        <div *ngFor="let phone of phones" class="p-4 border rounded-lg flex justify-between items-start gap-4">
+          <div class="flex-1">
+            <p class="font-medium">{{ phone.number }}</p>
+            <p *ngIf="phone.description" class="text-sm text-muted-foreground">{{ phone.description }}</p>
+            <p *ngIf="phone.isWhatsApp" class="text-sm text-green-600 font-medium">✓ WhatsApp</p>
+          </div>
+          <div class="flex gap-2" *ngIf="isEditing">
+            <button
+              type="button"
+              (click)="editPhone(phone)"
+              class="px-3 py-1 text-sm border rounded hover:bg-muted transition-colors"
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              (click)="deletePhone(phone.id)"
+              class="px-3 py-1 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors"
+            >
+              Deletar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de ação geral -->
+    <div class="bg-white border rounded-lg shadow p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div>
+        <p class="text-sm text-muted-foreground" *ngIf="!isEditing">Ative o modo edição para alterar nome, endereços e telefones.</p>
+        <p class="text-sm text-muted-foreground" *ngIf="isEditing">Endereços e telefones salvam ao criar/atualizar; aqui você salva apenas o nome.</p>
+      </div>
+      <div class="flex gap-3 w-full md:w-auto">
+        <button
+          *ngIf="!isEditing"
+          type="button"
+          (click)="toggleEdit()"
+          class="flex-1 md:flex-none px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+        >
+          Editar perfil
+        </button>
+        <ng-container *ngIf="isEditing">
+          <button
+            type="button"
+            (click)="saveProfile()"
+            [disabled]="!profileForm || profileForm.invalid || isSaving"
+            class="flex-1 md:flex-none px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+          >
+            {{ isSaving ? 'Salvando...' : 'Salvar nome' }}
+          </button>
+          <button
+            type="button"
+            (click)="toggleEdit()"
+            class="flex-1 md:flex-none px-4 py-2 border rounded-lg hover:bg-muted transition-colors font-medium"
+          >
+            Sair do modo edição
+          </button>
+        </ng-container>
+      </div>
+    </div>
+
+    <div *ngIf="currentUser?.isFreelancer" class="bg-white border rounded-lg shadow-lg p-8">
+      <h2 class="text-2xl font-bold mb-6">Perfil Profissional</h2>
+      
+      <div *ngIf="freelancerLoading" class="p-6 bg-muted rounded animate-pulse">Carregando perfil de freelancer...</div>
+
+      <div *ngIf="!freelancerLoading && freelancer" class="flex flex-col gap-4">
+        <div class="flex items-center gap-4 mb-2">
+          <div class="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-2xl">{{ (freelancer.title || 'F').charAt(0) }}</div>
+          <div class="flex-1">
+            <h2 class="text-xl font-bold">{{ freelancer.title }}</h2>
+            <div class="text-sm text-muted-foreground" *ngIf="freelancer.category">
+              {{ getCategoryLabel(typeof freelancer.category === 'string' ? freelancer.category : freelancer.category.name) }}
+            </div>
+            <div class="text-sm text-yellow-600 font-medium mt-1" *ngIf="freelancer.averageRating">
+              ⭐ {{ freelancer.averageRating.toFixed(1) }}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-semibold mb-2">Sobre</h3>
+          <p class="text-sm text-muted-foreground whitespace-pre-wrap">{{ freelancer.description }}</p>
+        </div>
+
+        <div class="flex gap-3 pt-4 items-center">
+          <button type="button" class="px-4 py-2 bg-primary text-white rounded btn-animated" (click)="toggleEditFreelancer()">Editar perfil de freelancer</button>
+        </div>
+
+        <!-- Edit freelancer form inline -->
+        <div *ngIf="editingFreelancer" class="mt-4 border rounded p-4 bg-surface">
+          <h4 class="font-semibold mb-2">Editar perfil de freelancer</h4>
+          <form [formGroup]="freelancerEditForm" (ngSubmit)="saveFreelancerEdit()" class="space-y-3">
+            <div>
+              <label class="text-sm mb-1 block">Título *</label>
+              <input formControlName="title" class="w-full px-3 py-2 border rounded" placeholder="Ex: Desenvolvedor Full Stack" />
+              <div *ngIf="freelancerEditForm.get('title')?.invalid && freelancerEditForm.get('title')?.touched" class="text-xs text-red-600 mt-1">
+                Título é obrigatório (mínimo 5 caracteres, máximo 100)
+              </div>
+            </div>
+            <div>
+              <label class="text-sm mb-1 block">Descrição *</label>
+              <textarea formControlName="description" rows="5" class="w-full px-3 py-2 border rounded" placeholder="Conte sobre sua experiência e especialidades (mínimo 20 caracteres)"></textarea>
+              <div *ngIf="freelancerEditForm.get('description')?.invalid && freelancerEditForm.get('description')?.touched" class="text-xs text-red-600 mt-1">
+                Descrição é obrigatória (mínimo 20 caracteres)
+              </div>
+            </div>
+            <div>
+              <label class="text-sm mb-1 block">Categoria *</label>
+              <select formControlName="category" class="w-full px-3 py-2 border rounded">
+                <option value="" disabled>Selecione uma categoria</option>
+                <option *ngFor="let cat of categoryOptions" [value]="cat.value">{{ cat.label }}</option>
+              </select>
+              <div *ngIf="freelancerEditForm.get('category')?.invalid && freelancerEditForm.get('category')?.touched" class="text-xs text-red-600 mt-1">
+                Categoria é obrigatória
+              </div>
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button 
+                type="submit" 
+                [disabled]="freelancerEditForm.invalid || freelancerEditSubmitting" 
+                class="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span *ngIf="!freelancerEditSubmitting">Salvar</span>
+                <span *ngIf="freelancerEditSubmitting">Salvando...</span>
+              </button>
+              <button type="button" (click)="toggleEditFreelancer()" class="px-4 py-2 border rounded hover:bg-muted">Cancelar</button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+
+      <div *ngIf="!freelancerLoading && !freelancer" class="p-6 bg-muted rounded text-center">
+        <div class="text-sm text-muted-foreground">Nenhum perfil de freelancer encontrado — <a routerLink="/become-freelancer" class="text-primary hover:underline">criar perfil</a></div>
+      </div>
+    </div>
+
+    <!-- Simple role hint (compact, no bulky panel) -->
+    <div class="mt-6 flex items-center justify-between">
+      <div class="text-sm text-muted-foreground"><span class="font-semibold">Tipo de conta:</span> {{ currentUser?.isFreelancer ? 'Freelancer' : 'Usuário Comum' }}</div>
+      <div class="flex items-center gap-3">
+        <ng-container *ngIf="!currentUser?.isFreelancer">
+          <button routerLink="/become-freelancer" class="px-3 py-1 bg-primary text-white rounded btn-animated text-sm">Seja Freelancer</button>
+        </ng-container>
+        <ng-container *ngIf="currentUser?.isFreelancer && freelancer">
+          <a [routerLink]="['/freelancer', freelancer.id]" class="text-sm text-primary hover:underline">Ver perfil público</a>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>

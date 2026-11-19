@@ -1,0 +1,10 @@
+.component-stub{padding:8px;border:1px dashed #cfcfcf;border-radius:6px}
+.navbar{background:transparent}
+
+/* Ensure navbar stays on top and its interactive elements receive pointer events */
+:host nav, :host {
+	z-index: 9999;
+}
+:host a, :host button {
+	pointer-events: auto;
+}
